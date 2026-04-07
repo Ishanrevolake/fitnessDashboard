@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Trainer Dashboard | Client Progress</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Main Top Header -->
+        <header class="top-header">
+            <div class="client-brand">
+                <i data-lucide="chevron-left" class="icon-btn"></i>
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop" alt="Ben Andrew" class="avatar-header">
+                <h1 class="client-name">Ben Andrew - Demo</h1>
+            </div>
+            <div class="header-right">
+                <span class="trial-status">29 days left until trial ends</span>
+                <button class="btn-upgrade">Upgrade</button>
+                <div class="header-icons">
+                    <button class="icon-btn"><i data-lucide="search"></i></button>
+                    <button class="icon-btn"><i data-lucide="grid"></i></button>
+                    <button class="icon-btn"><i data-lucide="bell"></i></button>
+                    <button class="icon-btn"><i data-lucide="plus-circle"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Horizontal Tab Navigation -->
+        <nav class="tab-navigation">
+            <a href="#" class="tab-link active">Overview</a>
+        </nav>
+
+        <main class="main-content">
+            <div class="dashboard-grid">
+                <!-- Column 1: Stats & Metrics -->
+                <div class="column">
+                    <section class="card">
+                        <div class="card-title">Training</div>
+                        <div class="training-stats">
+                            <div class="stat-box">
+                                <div class="stat-label">Last 7 Days</div>
+                                <div class="stat-value">3/3</div>
+                                <div class="stat-label">Tracked</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Last 30 Days</div>
+                                <div class="stat-value">4/4</div>
+                                <div class="stat-label">Tracked</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Next Week</div>
+                                <div class="stat-value">3</div>
+                                <div class="stat-label">Assigned</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-title">Body Metrics Overview</div>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h4>Weight</h4>
+                                    <span class="badge-tag">0.8%</span>
+                                </div>
+                                <div class="metric-val">74.4 kg</div>
+                                <div class="mini-chart" id="weightChart"></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h4>Sleep</h4>
+                                </div>
+                                <div class="metric-val">6 h 58 min</div>
+                                <div class="mini-chart" id="sleepChart"></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h4>Resting Heart Rate</h4>
+                                    <span class="badge-tag">5.7%</span>
+                                </div>
+                                <div class="metric-val">66 bpm</div>
+                                <div class="mini-chart" id="hrChart"></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h4>Steps</h4>
+                                </div>
+                                <div class="metric-val">9650</div>
+                                <div class="mini-chart" id="stepsChart"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Column 2: Goals, Notes, Photos -->
+                <div class="column">
+                    <section class="card">
+                        <div class="card-title"><i data-lucide="target"></i> Goal & Countdown</div>
+                        <div class="note-item">
+                            <strong>General Goal</strong><br>
+                            Run a marathon without stopping to walk.
+                        </div>
+                        <div class="note-item">
+                            <strong>10km City2Surf Fun Run</strong><br>
+                            37 Days Remaining
+                        </div>
+                    </section>
+                    
+                    <section class="card">
+                        <div class="card-title"><i data-lucide="edit-3"></i> Notes <i data-lucide="edit" style="margin-left: auto;"></i></div>
+                        <div class="note-item">
+                            - Need program while traveling for 2 weeks.<br>
+                            <span class="feed-time">Mar 27 - 4:45 PM</span>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-title"><i data-lucide="alert-circle"></i> Limitations/Injuries <i data-lucide="edit" style="margin-left: auto;"></i></div>
+                        <div class="note-item">
+                            - Leg injury last year.<br>
+                            <span class="feed-time">Mar 23 - 4:45 PM</span>
+                        </div>
+                        <div class="note-item">
+                            - Ben did a couple of physical therapy sessions in July 2018.<br>
+                            <span class="feed-time">Mar 23 - 4:45 PM</span>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-title"><i data-lucide="camera"></i> Progress Photos</div>
+                        <div class="photo-row">
+                            <div class="photo-box">
+                                <img src="https://images.unsplash.com/photo-1517838276535-2487d7881446?w=200&h=250&fit=crop" alt="Before">
+                                <span class="photo-tag">Before</span>
+                            </div>
+                            <div class="photo-box">
+                                <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&h=250&fit=crop" alt="Current">
+                                <span class="photo-tag">After</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Column 3: Profile & Updates -->
+                <div class="column">
+                    <section class="card">
+                        <div class="card-title">Profile <i data-lucide="star" style="margin-left: auto; color: var(--text-muted);"></i></div>
+                        <div class="profile-info">
+                            <div class="info-item"><i data-lucide="mail"></i> ben@demo</div>
+                            <div class="info-item"><i data-lucide="clock"></i> 08:17 - America/Los_Angeles</div>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-title">Updates</div>
+                        <div class="update-feed">
+                            <div class="feed-item">
+                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar">
+                                <div class="feed-text">
+                                    <strong>Ben Andrew - Demo</strong> commented on workout: Squat felt heavy today but form was good.
+                                    <span class="feed-time">4h</span>
+                                </div>
+                            </div>
+                            <div class="feed-item">
+                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar">
+                                <div class="feed-text">
+                                    <strong>Ben Andrew - Demo</strong> updated body metrics
+                                    <span class="feed-time">4h</span>
+                                </div>
+                            </div>
+                            <div class="feed-item">
+                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar">
+                                <div class="feed-text">
+                                    <strong>Ben Andrew - Demo</strong> updated body metrics
+                                    <span class="feed-time">4h</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn-secondary">View Activity History</button>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

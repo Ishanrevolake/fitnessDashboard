@@ -1,0 +1,349 @@
+:root {
+    --bg-light: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --border-light: #E2E8F0;
+    --text-main: #1E293B;
+    --text-muted: #64748B;
+    --accent-red: #E63946;
+    --accent-red-deep: #7B1019;
+    --accent-green: #10B981;
+    --accent-orange: #F97316;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    min-height: 100vh;
+}
+
+/* Dashboard Container (Now Full Width) */
+.dashboard-container {
+    width: 100%;
+    display: block;
+}
+
+/* Header Styling (Client Identity on Top Left) */
+.top-header {
+    height: 72px;
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.client-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.avatar-header {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.client-name {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.trial-status {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.btn-upgrade {
+    background: linear-gradient(135deg, #F59E0B 0%, #EA580C 100%);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+}
+
+.header-icons {
+    display: flex;
+    gap: 16px;
+    color: var(--text-muted);
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.icon-btn:hover { color: var(--accent-red); }
+
+/* Tab Navigation */
+.tab-navigation {
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--border-light);
+    padding: 0 40px;
+    display: flex;
+    gap: 32px;
+    overflow-x: auto;
+}
+
+.tab-link {
+    padding: 16px 0;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+    white-space: nowrap;
+}
+
+.tab-link.active {
+    color: var(--accent-red);
+}
+
+.tab-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent-red);
+}
+
+/* Main Content Layout (3 Columns) */
+.main-content {
+    padding: 32px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.8fr;
+    gap: 24px;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Card Styling (Light Theme) */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-soft);
+}
+
+.card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-title i { color: var(--accent-red); }
+
+/* Column 1: Stats & Metrics */
+.training-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    text-align: center;
+}
+
+.stat-box {
+    border-right: 1px solid var(--border-light);
+    padding: 8px;
+}
+
+.stat-box:last-child { border-right: none; }
+
+.stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.metric-card {
+    padding: 16px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.metric-header h4 { font-size: 14px; font-weight: 500; }
+
+.metric-val {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.mini-chart {
+    height: 40px;
+    width: 100%;
+}
+
+/* Column 2: Goals, Notes, Photos */
+.badge-tag {
+    background: var(--bg-light);
+    color: var(--accent-red);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.note-item {
+    padding: 12px;
+    background: var(--bg-light);
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+.photo-row {
+    display: flex;
+    gap: 12px;
+}
+
+.photo-box {
+    flex: 1;
+    aspect-ratio: 1/1.2;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.photo-box img { width: 100%; height: 100%; object-fit: cover; }
+
+.photo-tag {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Column 3: Profile & Updates */
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.feed-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.feed-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.feed-text {
+    font-size: 13px;
+}
+
+.feed-text strong { color: var(--text-main); }
+
+.feed-time {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-light);
+    background: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 16px;
+}
+
+/* Custom SVG Progress Rings (Now simpler) */
+.stat-circle {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 8px;
+}
+
+.ring-bg { stroke: #F1F5F9; stroke-width: 4; fill: none; }
+.ring-progress { stroke-width: 4; fill: none; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+}

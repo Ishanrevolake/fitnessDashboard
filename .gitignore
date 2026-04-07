@@ -1,0 +1,7 @@
+# Internal and temporary files
+.gemini/
+.antigravity/
+browser/
+*.log
+tmp/
+node_modules/
