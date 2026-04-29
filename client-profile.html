@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Trainer Dashboard | Client Progress</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="app-sidebar expanded" id="appSidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-logo">A</div>
+                    <span class="brand-text">AlphaFitness</span>
+                </div>
+                <button class="toggle-btn icon-btn" id="sidebarToggle"><i data-lucide="menu"></i></button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- Dashboard -->
+                <div class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </div>
+
+                <!-- Clients -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="users"></i>
+                        <span class="nav-text">Clients</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="clients.html">All Clients</a></li>
+                        <li><a href="clients.html?status=active">Active Clients</a></li>
+                        <li><a href="clients.html?status=inactive">Inactive Clients</a></li>
+                    </ul>
+                </div>
+
+                <!-- Library -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="book-open"></i>
+                        <span class="nav-text">Library</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="programs.html">Programs</a></li>
+                        <li><a href="meal-plans.html">Meal Plan Templates</a></li>
+                    </ul>
+                </div>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="settings"></i>
+                        <span class="nav-text">Settings</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="#">Your Account</a></li>
+                        <li><a href="#">Default Settings</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <div class="dashboard-container">
+        <!-- Main Top Header -->
+        <header class="top-header">
+            <div class="client-brand">
+                <a href="clients.html" style="color: var(--text-main);"><i data-lucide="chevron-left" class="icon-btn"></i></a>
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop" alt="Ben Andrew" class="avatar-header">
+                <h1 class="client-name">Ben Andrew</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-icons">
+                    <button class="icon-btn"><i data-lucide="message-square"></i></button>
+                    <button class="icon-btn"><i data-lucide="more-vertical"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Horizontal Tab Navigation -->
+        <nav class="tab-navigation">
+            <a href="#" class="tab-link active">Overview</a>
+        </nav>
+
+        <main class="main-content">
+            <div class="dashboard-grid">
+                <!-- Column 1: Stats & Metrics -->
+                <div class="column">
+                    <section class="card">
+                        <div class="card-title">Training</div>
+                        <div class="training-stats" style="margin-bottom: 16px;">
+                            <div class="stat-box">
+                                <div class="stat-label">Last 7 Days</div>
+                                <div class="stat-value">1/3</div>
+                                <div class="stat-label" style="color: var(--accent-green);">Tracked</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Last 30 Days</div>
+                                <div class="stat-value">4/6</div>
+                                <div class="stat-label" style="color: var(--accent-green);">Tracked</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Next Week</div>
+                                <div class="stat-value" style="color: var(--text-muted);">0</div>
+                                <div class="stat-label" style="color: var(--accent-red);">Not assigned yet</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 12px;">
+                            <div><strong style="color: #2563EB;">Last Workout:</strong> Squat, Press, Power Clean <span style="color: var(--text-muted);">- 7 days ago</span></div>
+                            <button class="btn-secondary" style="padding: 4px 12px; font-size: 11px; background: var(--bg-light); border: none;">Check Result</button>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">Body Metrics Overview <select style="padding: 4px 8px; border: 1px solid var(--border-light); border-radius: 4px; font-size: 12px; background: white;"><option>Last 4 weeks</option></select></div>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Weight</div>
+                                <div class="metric-val" style="display: flex; align-items: center; gap: 8px;">
+                                    74.4 <span style="font-size: 13px; font-weight:normal; color: var(--text-muted);">kg</span>
+                                    <span class="badge-tag" style="background: rgba(230,57,70,0.1); color: var(--accent-red);">↓ 0.8%</span>
+                                </div>
+                                <div id="weightChart" class="mini-chart"></div>
+                            </div>
+                            <div class="metric-card">
+                                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Sleep</div>
+                                <div class="metric-val">
+                                    6<span style="font-size: 14px; font-weight:normal;">h</span> 56<span style="font-size: 14px; font-weight:normal;">min</span>
+                                </div>
+                                <div id="sleepChart" class="mini-chart"></div>
+                            </div>
+                            <div class="metric-card">
+                                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Resting Heart Rate</div>
+                                <div class="metric-val" style="display: flex; align-items: center; gap: 8px;">
+                                    66 <span style="font-size: 13px; font-weight:normal; color: var(--text-muted);">bpm</span>
+                                    <span class="badge-tag" style="background: rgba(230,57,70,0.1); color: var(--accent-red);">↓ 5.7%</span>
+                                </div>
+                                <div id="hrChart" class="mini-chart"></div>
+                            </div>
+                            <div class="metric-card">
+                                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Steps</div>
+                                <div class="metric-val" style="display: flex; align-items: baseline; gap: 8px;">
+                                    12397 <span style="font-size: 10px; font-weight: normal; color: var(--text-muted);">Average last 7 days</span>
+                                </div>
+                                <div id="stepsChart" class="mini-chart"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Column 2: Goals, Notes, Photos -->
+                <div class="column">
+
+                    <section class="card">
+                        <div class="card-title" style="align-items: center;"><i data-lucide="edit-3" style="color: #F59E0B;"></i> Notes <button id="addNoteBtn" class="btn-primary" style="margin-left: auto; padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 4px;"><i data-lucide="plus" style="width: 14px;"></i> Add Note</button></div>
+                        <div class="note-item" style="background: transparent; padding: 0;">
+                            <div style="display: flex; gap: 8px;">
+                                <div style="color: #3B82F6; font-size: 18px; line-height: 1;">•</div>
+                                <div>
+                                    Need program while traveling for 2 weeks.<br>
+                                    <span class="feed-time" style="margin-top: 6px;">Apr 8 · 11:58 AM</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+
+                    <section class="card">
+                        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;"><i data-lucide="camera" style="color: #0EA5E9;"></i> Progress Gallery <button class="icon-btn"><i data-lucide="plus-circle" style="width: 18px;"></i></button></div>
+                        <div class="gallery-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                            <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=200&fit=crop" alt="Photo 1" class="gallery-img" style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s;">
+                            <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&h=200&fit=crop" alt="Photo 2" class="gallery-img" style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s;">
+                            <img src="https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=200&fit=crop" alt="Photo 3" class="gallery-img" style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s;">
+                            <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&h=200&fit=crop" alt="Photo 4" class="gallery-img" style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s;">
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Column 3: Profile & Updates -->
+                <div class="column">
+                    <section class="card">
+                        <div class="card-title">Profile <i data-lucide="star" style="margin-left: auto; color: var(--border-light); fill: var(--border-light);"></i></div>
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px; justify-content: center;">
+                            <div style="background: var(--bg-light); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;"><i data-lucide="message-circle" style="width: 16px; color: var(--text-muted);"></i></div>
+                            <div style="background: var(--bg-light); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;"><i data-lucide="file-text" style="width: 16px; color: var(--text-muted);"></i></div>
+                        </div>
+                        <div class="profile-info">
+                            <div class="info-item"><i data-lucide="mail"></i> ben@demo</div>
+                            <div class="info-item"><i data-lucide="home"></i> 20:03 - America/Los_Angeles</div>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-title">Updates</div>
+                        <div class="update-feed">
+                            <div class="feed-item" style="border-left: 2px solid var(--border-light); padding-left: 16px; margin-left: 16px; position: relative;">
+                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar" style="position: absolute; left: -26px; top: -5px; width: 28px; height: 28px; border: 4px solid white;">
+                                <div class="feed-text" style="margin-top: -5px;">
+                                    <strong>Ben Andrew - Demo</strong> commented on 04/13's workout: Squat, Pres...
+                                    <span class="feed-time" style="position: absolute; right: 0; top: -5px;">2d</span>
+                                </div>
+                            </div>
+                            <div class="feed-item" style="border-left: 2px solid var(--border-light); padding-left: 16px; margin-left: 16px; position: relative;">
+                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar" style="position: absolute; left: -26px; top: -5px; width: 28px; height: 28px; border: 4px solid white;">
+                                <div class="feed-text" style="margin-top: -5px;">
+                                    <strong>Ben Andrew - Demo</strong> updated body metrics
+                                    <span class="feed-time" style="position: absolute; right: 0; top: -5px;">2d</span>
+                                </div>
+                            </div>
+                            <div class="feed-item" style="border-left: 2px solid var(--border-light); padding-left: 16px; margin-left: 16px; position: relative; border-color: transparent;">
+                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar" style="position: absolute; left: -26px; top: -5px; width: 28px; height: 28px; border: 4px solid white;">
+                                <div class="feed-text" style="margin-top: -5px;">
+                                    <strong>Ben Andrew - Demo</strong> updated body metrics
+                                    <span class="feed-time" style="position: absolute; right: 0; top: -5px;">2d</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+    </div>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div id="lightboxModal" class="modal-overlay" style="z-index: 2000;">
+        <div class="modal-content" style="max-width: 800px; background: transparent; box-shadow: none; display: flex; flex-direction: column; align-items: center;">
+            <button class="close-modal icon-btn" id="closeLightboxBtn" style="color: white; align-self: flex-end; margin-bottom: 16px; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 8px;"><i data-lucide="x"></i></button>
+            <img id="lightboxImg" src="" style="max-width: 100%; max-height: 80vh; border-radius: 8px; object-fit: contain;">
+        </div>
+    </div>
+
+    <!-- Add Note Modal -->
+    <div id="addNoteModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Note</h2>
+                <button class="close-modal icon-btn" id="closeNoteModalBtn"><i data-lucide="x"></i></button>
+            </div>
+            <form id="addNoteForm" class="modal-form">
+                <div class="form-group">
+                    <label for="noteContent">Note Details</label>
+                    <textarea id="noteContent" name="noteContent" rows="4" required placeholder="Type your note here..." style="padding: 12px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 14px; outline: none; font-family: inherit; resize: vertical; transition: border-color 0.2s, box-shadow 0.2s;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelNoteModalBtn">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

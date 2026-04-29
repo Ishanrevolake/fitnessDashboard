@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Trainer Dashboard | Client Progress</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="app-sidebar expanded" id="appSidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-logo">A</div>
+                    <span class="brand-text">AlphaFitness</span>
+                </div>
+                <button class="toggle-btn icon-btn" id="sidebarToggle"><i data-lucide="menu"></i></button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- Dashboard -->
+                <div class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </div>
+
+                <!-- Clients -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="users"></i>
+                        <span class="nav-text">Clients</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="clients.html">All Clients</a></li>
+                        <li><a href="clients.html?status=active">Active Clients</a></li>
+                        <li><a href="clients.html?status=inactive">Inactive Clients</a></li>
+                    </ul>
+                </div>
+
+                <!-- Library -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="book-open"></i>
+                        <span class="nav-text">Library</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="programs.html">Programs</a></li>
+                        <li><a href="meal-plans.html">Meal Plan Templates</a></li>
+                    </ul>
+                </div>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="settings"></i>
+                        <span class="nav-text">Settings</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="#">Your Account</a></li>
+                        <li><a href="#">Default Settings</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <div class="dashboard-container">
+        <!-- Main Top Header -->
+        <header class="top-header">
+            <div class="client-brand">
+                <h1 class="client-name" style="margin-left: 10px;">Clients Directory</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-icons">
+                    <button class="icon-btn"><i data-lucide="search"></i></button>
+                    <button class="icon-btn"><i data-lucide="grid"></i></button>
+                    <button class="icon-btn"><i data-lucide="bell"></i></button>
+                    <button class="icon-btn" id="headerAddClientBtn"><i data-lucide="plus-circle"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Horizontal Tab Navigation -->
+        <nav class="tab-navigation">
+            <a href="#" class="tab-link active">Overview</a>
+        </nav>
+
+        <main class="main-content">
+            <div class="search-section" style="display: flex; gap: 16px; margin-bottom: 24px; background: white; padding: 16px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-soft); align-items: center;">
+                <div style="flex: 1; position: relative;">
+                    <i data-lucide="search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 20px;"></i>
+                    <input type="text" id="clientSearchInput" placeholder="Search clients by name, email, or goal..." style="width: 100%; padding: 10px 16px 10px 48px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 14px; outline: none; transition: border 0.3s; box-sizing: border-box;">
+                </div>
+                <select id="clientStatusFilter" class="modern-select" style="min-width: 120px;">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <select id="clientPackageFilter" class="modern-select" style="min-width: 150px;">
+                    <option value="">All Packages</option>
+                    <option value="rookie">Rookie Bundle</option>
+                    <option value="intermediate">Intermediate Bundle</option>
+                    <option value="advanced">Advanced Bundle</option>
+                    <option value="annual">Annual Package</option>
+                    <option value="one-month-1">One Month Package 1</option>
+                    <option value="one-month-2">One Month Package 2</option>
+                    <option value="training-plan">Training Plan Only 6 Weeks</option>
+                </select>
+                <button id="clientsPageAddClientBtn" class="btn-primary" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; font-size: 14px; margin-top: 0; white-space: nowrap;"><i data-lucide="plus" style="width: 16px;"></i> New Client</button>
+            </div>
+
+            <div class="clients-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px;">
+                <!-- Client Card 1 -->
+                <div class="card" data-name="ben andrew" data-email="ben@demo.com" data-status="active" data-package="rookie" style="padding: 16px; display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 1 / 1;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop" class="avatar-header" style="width: 60px; height: 60px; border-radius: 12px;">
+                        <div>
+                            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main);">Ben Andrew</h3>
+                            <span style="color: var(--text-muted); font-size: 13px;">ben@demo.com</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 12px 0;">
+                        <div style="text-align: center; flex: 1; border-right: 1px solid var(--border-light);">
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Days Left</div>
+                            <div style="font-weight: 700; color: var(--accent-red); margin-top: 4px;">14 Days</div>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Package</div>
+                            <div style="font-weight: 600; color: var(--text-main); margin-top: 4px;">Rookie Bundle</div>
+                        </div>
+                    </div>
+                    <a href="client-profile.html" class="btn-secondary" style="text-align: center; display: block; text-decoration: none; color: var(--text-main); font-weight: 600; background: var(--bg-light); border: none;">View Profile</a>
+                </div>
+
+                <!-- Client Card 2 -->
+                <div class="card" data-name="jessica smith" data-email="jessica@demo.com" data-status="active" data-package="advanced" style="padding: 16px; display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 1 / 1;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop" class="avatar-header" style="width: 60px; height: 60px; border-radius: 12px;">
+                        <div>
+                            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main);">Jessica Smith</h3>
+                            <span style="color: var(--text-muted); font-size: 13px;">jessica@demo.com</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 12px 0;">
+                        <div style="text-align: center; flex: 1; border-right: 1px solid var(--border-light);">
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Days Left</div>
+                            <div style="font-weight: 700; color: var(--accent-red); margin-top: 4px;">5 Days</div>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Package</div>
+                            <div style="font-weight: 600; color: var(--text-main); margin-top: 4px;">Advanced Bundle</div>
+                        </div>
+                    </div>
+                    <a href="client-profile.html" class="btn-secondary" style="text-align: center; display: block; text-decoration: none; color: var(--text-main); font-weight: 600; background: var(--bg-light); border: none;">View Profile</a>
+                </div>
+
+                <!-- Client Card 3 -->
+                <div class="card" data-name="marcus johnson" data-email="marcus@demo.com" data-status="inactive" data-package="one-month-1" style="padding: 16px; display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 1 / 1; opacity: 0.7;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" class="avatar-header" style="width: 60px; height: 60px; border-radius: 12px; filter: grayscale(100%);">
+                        <div>
+                            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main);">Marcus Johnson</h3>
+                            <span style="color: var(--text-muted); font-size: 13px;">marcus@demo.com</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 12px 0;">
+                        <div style="text-align: center; flex: 1; border-right: 1px solid var(--border-light);">
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Days Left</div>
+                            <div style="font-weight: 700; color: var(--text-muted); margin-top: 4px;">0 Days</div>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Package</div>
+                            <div style="font-weight: 600; color: var(--text-main); margin-top: 4px;">One Month Pack</div>
+                        </div>
+                    </div>
+                    <a href="client-profile.html" class="btn-secondary" style="text-align: center; display: block; text-decoration: none; color: var(--text-main); font-weight: 600; background: var(--bg-light); border: none;">View Profile</a>
+                </div>
+            </div>
+        </main>
+    </div>
+    </div>
+    </div>
+
+    <!-- Add Client Modal -->
+    <div id="addClientModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Client</h2>
+                <button class="close-modal icon-btn" id="closeModalBtn"><i data-lucide="x"></i></button>
+            </div>
+            <form id="addClientForm" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" required placeholder="Enter first name">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" required placeholder="Enter last name">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="client@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" required placeholder="+1 (555) 000-0000">
+                </div>
+                <div class="form-group">
+                    <label for="packageSelect">Package Selected</label>
+                    <select id="packageSelect" name="packageSelect" class="modern-select" required>
+                        <option value="" disabled selected>Select a package</option>
+                        <option value="rookie">Rookie Bundle</option>
+                        <option value="intermediate">Intermediate Bundle</option>
+                        <option value="advanced">Advanced Bundle</option>
+                        <option value="annual">Annual Package</option>
+                        <option value="one-month-1">One Month Package 1</option>
+                        <option value="one-month-2">One Month Package 2</option>
+                        <option value="training-plan">Training Plan Only 6 Weeks</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelModalBtn">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

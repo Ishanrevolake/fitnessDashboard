@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programs Library | AlphaFitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="app-sidebar expanded" id="appSidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-logo">A</div>
+                    <span class="brand-text">AlphaFitness</span>
+                </div>
+                <button class="toggle-btn icon-btn" id="sidebarToggle"><i data-lucide="menu"></i></button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </div>
+
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="users"></i>
+                        <span class="nav-text">Clients</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="clients.html">All Clients</a></li>
+                        <li><a href="clients.html?status=active">Active Clients</a></li>
+                        <li><a href="clients.html?status=inactive">Inactive Clients</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="book-open"></i>
+                        <span class="nav-text">Library</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="programs.html">Programs</a></li>
+                        <li><a href="meal-plans.html">Meal Plan Templates</a></li>
+                    </ul>
+                </div>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="settings"></i>
+                        <span class="nav-text">Settings</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="#">Your Account</a></li>
+                        <li><a href="#">Default Settings</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <header class="top-header">
+                <div class="header-left">
+                    <h1>Program Templates</h1>
+                    <p class="text-muted">Create and manage your reusable training programs</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn-primary" id="openCreateProgramBtn" style="padding: 8px 16px; font-size: 14px;"><i data-lucide="plus" style="width: 16px;"></i> Create Program</button>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <div class="search-section" style="display: flex; gap: 16px; margin-bottom: 24px; background: white; padding: 16px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-soft); align-items: center;">
+                    <div style="flex: 1; position: relative;">
+                        <i data-lucide="search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 20px;"></i>
+                        <input type="text" placeholder="Search programs..." style="width: 100%; padding: 10px 16px 10px 48px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 14px; outline: none; transition: border 0.3s; box-sizing: border-box;">
+                    </div>
+                    <select class="modern-select" style="min-width: 150px;">
+                        <option>All Durations</option>
+                        <option>4 Weeks</option>
+                        <option>8 Weeks</option>
+                        <option>12 Weeks</option>
+                    </select>
+                </div>
+
+                <div class="program-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
+                    <!-- Program Card 1 -->
+                    <div class="card" style="padding: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                            <div>
+                                <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">12-Week Transformation</h3>
+                                <span class="badge-tag" style="background: rgba(230,57,70,0.1); color: var(--accent-red);">Advanced</span>
+                            </div>
+                            <div style="background: var(--bg-light); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid var(--border-light); min-width: 60px;">
+                                <div style="font-size: 16px; font-weight: 700;">12</div>
+                                <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Weeks</div>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">A comprehensive program focused on body recomposition and strength building.</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 16px;">
+                            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">5 Workouts / Week</div>
+                            <button class="btn-secondary" style="font-size: 12px; padding: 8px 16px;">Edit Program</button>
+                        </div>
+                    </div>
+
+                    <!-- Program Card 2 -->
+                    <div class="card" style="padding: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                            <div>
+                                <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">Strength Foundations</h3>
+                                <span class="badge-tag" style="background: rgba(37, 99, 235, 0.1); color: #2563EB;">Beginner</span>
+                            </div>
+                            <div style="background: var(--bg-light); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid var(--border-light); min-width: 60px;">
+                                <div style="font-size: 16px; font-weight: 700;">8</div>
+                                <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Weeks</div>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">Master the core lifts with a focus on technique and steady progression.</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 16px;">
+                            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">3 Workouts / Week</div>
+                            <button class="btn-secondary" style="font-size: 12px; padding: 8px 16px;">Edit Program</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Create Program Modal -->
+            <div id="createProgramModal" class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Create New Program</h2>
+                        <button class="close-modal icon-btn" id="closeProgramModalBtn"><i data-lucide="x"></i></button>
+                    </div>
+                    <form id="createProgramForm" class="modal-form">
+                        <div class="form-group">
+                            <label for="progName">Program Name</label>
+                            <input type="text" id="progName" name="progName" required placeholder="e.g. Summer Shred 2.0">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="progDuration">Duration (Weeks)</label>
+                                <input type="number" id="progDuration" name="progDuration" required placeholder="8">
+                            </div>
+                            <div class="form-group">
+                                <label for="progIntensity">Intensity Level</label>
+                                <select id="progIntensity" name="progIntensity" class="modern-select">
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="progDesc">Description</label>
+                            <textarea id="progDesc" name="progDesc" placeholder="Brief overview of the program goals..."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-secondary" id="cancelProgramBtn">Cancel</button>
+                            <button type="submit" class="btn-primary">Create Program</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

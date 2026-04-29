@@ -11,20 +11,83 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="app-sidebar expanded" id="appSidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-logo">A</div>
+                    <span class="brand-text">AlphaFitness</span>
+                </div>
+                <button class="toggle-btn icon-btn" id="sidebarToggle"><i data-lucide="menu"></i></button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- Dashboard -->
+                <div class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </div>
+
+                <!-- Clients -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="users"></i>
+                        <span class="nav-text">Clients</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="clients.html">All Clients</a></li>
+                        <li><a href="clients.html?status=active">Active Clients</a></li>
+                        <li><a href="clients.html?status=inactive">Inactive Clients</a></li>
+                    </ul>
+                </div>
+
+                <!-- Library -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="book-open"></i>
+                        <span class="nav-text">Library</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="programs.html">Programs</a></li>
+                        <li><a href="meal-plans.html">Meal Plan Templates</a></li>
+                    </ul>
+                </div>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i data-lucide="settings"></i>
+                        <span class="nav-text">Settings</span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <ul class="submenu">
+                        <li><a href="#">Your Account</a></li>
+                        <li><a href="#">Default Settings</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <div class="dashboard-container">
         <!-- Main Top Header -->
         <header class="top-header">
             <div class="client-brand">
-                <i data-lucide="chevron-left" class="icon-btn"></i>
-                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop" alt="Ben Andrew" class="avatar-header">
-                <h1 class="client-name">Andrew</h1>
+                <h1 class="client-name" style="margin-left: 10px;">Trainer Overview</h1>
             </div>
             <div class="header-right">
                 <div class="header-icons">
                     <button class="icon-btn"><i data-lucide="search"></i></button>
                     <button class="icon-btn"><i data-lucide="grid"></i></button>
                     <button class="icon-btn"><i data-lucide="bell"></i></button>
-                    <button class="icon-btn"><i data-lucide="plus-circle"></i></button>
+                    <button class="icon-btn" id="headerAddClientBtn"><i data-lucide="plus-circle"></i></button>
                 </div>
             </div>
         </header>
@@ -39,118 +102,148 @@
                 <!-- Column 1: Stats & Metrics -->
                 <div class="column">
                     <section class="card">
-                        <div class="card-title">Training</div>
-                        <div class="training-stats">
-                            <div class="stat-box">
-                                <div class="stat-label">Last 7 Days</div>
-                                <div class="stat-value">3/3</div>
-                                <div class="stat-label">Tracked</div>
+                        <div class="card-title"><i data-lucide="bar-chart-2"></i> Business Metrics</div>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-header"><h4>Active Clients</h4><i data-lucide="users" style="color: var(--accent-red); width: 16px;"></i></div>
+                                <div class="metric-val">45</div>
+                                <span class="badge-tag" style="background: var(--bg-light); color: var(--accent-green);">+3 this week</span>
                             </div>
-                            <div class="stat-box">
-                                <div class="stat-label">Last 30 Days</div>
-                                <div class="stat-value">4/4</div>
-                                <div class="stat-label">Tracked</div>
+                            <div class="metric-card">
+                                <div class="metric-header"><h4>Pending Check-ins</h4><i data-lucide="calendar" style="color: var(--text-muted); width: 16px;"></i></div>
+                                <div class="metric-val">8</div>
+                                <span class="badge-tag" style="background: rgba(230, 57, 70, 0.1); color: var(--accent-red);">Due today</span>
                             </div>
-                            <div class="stat-box">
-                                <div class="stat-label">Next Week</div>
-                                <div class="stat-value">3</div>
-                                <div class="stat-label">Assigned</div>
-                            </div>
-                        </div>
-                    </section>
-
-
-                </div>
-
-                <!-- Column 2: Goals, Notes, Photos -->
-                <div class="column">
-                    <section class="card">
-                        <div class="card-title"><i data-lucide="target"></i> Goal & Countdown</div>
-                        <div class="note-item">
-                            <strong>General Goal</strong><br>
-                            Run a marathon without stopping to walk.
-                        </div>
-                        <div class="note-item">
-                            <strong>10km City2Surf Fun Run</strong><br>
-                            37 Days Remaining
                         </div>
                     </section>
                     
                     <section class="card">
-                        <div class="card-title"><i data-lucide="edit-3"></i> Notes <i data-lucide="edit" style="margin-left: auto;"></i></div>
-                        <div class="note-item">
-                            - Need program while traveling for 2 weeks.<br>
-                            <span class="feed-time">Mar 27 - 4:45 PM</span>
+                        <div class="card-title"><i data-lucide="alert-circle"></i> Needs Attention</div>
+                        <div class="note-item" style="border-left: 3px solid var(--accent-orange);">
+                            <strong>Program Review</strong><br>
+                            Sarah needs her Phase 2 program.
                         </div>
-                    </section>
-
-                    <section class="card">
-                        <div class="card-title"><i data-lucide="alert-circle"></i> Limitations/Injuries <i data-lucide="edit" style="margin-left: auto;"></i></div>
-                        <div class="note-item">
-                            - Leg injury last year.<br>
-                            <span class="feed-time">Mar 23 - 4:45 PM</span>
-                        </div>
-                        <div class="note-item">
-                            - Ben did a couple of physical therapy sessions in July 2018.<br>
-                            <span class="feed-time">Mar 23 - 4:45 PM</span>
-                        </div>
-                    </section>
-
-                    <section class="card">
-                        <div class="card-title"><i data-lucide="camera"></i> Progress Photos</div>
-                        <div class="photo-row">
-                            <div class="photo-box">
-                                <img src="https://images.unsplash.com/photo-1517838276535-2487d7881446?w=200&h=250&fit=crop" alt="Before">
-                                <span class="photo-tag">Before</span>
-                            </div>
-                            <div class="photo-box">
-                                <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&h=250&fit=crop" alt="Current">
-                                <span class="photo-tag">After</span>
-                            </div>
+                        <div class="note-item" style="border-left: 3px solid var(--accent-red);">
+                            <strong>Unread Messages</strong><br>
+                            2 clients are waiting for a reply.
                         </div>
                     </section>
                 </div>
 
-                <!-- Column 3: Profile & Updates -->
+                <!-- Column 2: Schedule & Activity -->
                 <div class="column">
                     <section class="card">
-                        <div class="card-title">Profile <i data-lucide="star" style="margin-left: auto; color: var(--text-muted);"></i></div>
-                        <div class="profile-info">
-                            <div class="info-item"><i data-lucide="mail"></i> ben@demo</div>
-                            <div class="info-item"><i data-lucide="clock"></i> 08:17 - America/Los_Angeles</div>
+                        <div class="card-title"><i data-lucide="calendar"></i> Upcoming Schedule</div>
+                        <div class="feed-item" style="align-items: center; padding: 12px; background: var(--bg-light); border-radius: 8px;">
+                            <div style="background: white; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid var(--border-light); width: 45px;">
+                                <div style="font-size: 10px; color: var(--accent-red); font-weight: 700; text-transform: uppercase;">Apr</div>
+                                <div style="font-size: 16px; font-weight: 700;">26</div>
+                            </div>
+                            <div class="feed-text" style="flex: 1;">
+                                <strong>Zoom Check-in</strong> - David Smith<br>
+                                <span class="feed-time">10:00 AM - 10:30 AM</span>
+                            </div>
+                            <button class="icon-btn"><i data-lucide="video" style="width: 18px;"></i></button>
+                        </div>
+                        
+                        <div class="feed-item" style="align-items: center; padding: 12px; background: var(--bg-light); border-radius: 8px; margin-top: 10px;">
+                            <div style="background: white; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid var(--border-light); width: 45px;">
+                                <div style="font-size: 10px; color: var(--accent-red); font-weight: 700; text-transform: uppercase;">Apr</div>
+                                <div style="font-size: 16px; font-weight: 700;">26</div>
+                            </div>
+                            <div class="feed-text" style="flex: 1;">
+                                <strong>Consultation</strong> - New Lead<br>
+                                <span class="feed-time">2:00 PM - 2:30 PM</span>
+                            </div>
+                            <button class="icon-btn"><i data-lucide="phone" style="width: 18px;"></i></button>
                         </div>
                     </section>
 
                     <section class="card">
-                        <div class="card-title">Updates</div>
+                        <div class="card-title"><i data-lucide="activity"></i> Recent Activity</div>
                         <div class="update-feed">
                             <div class="feed-item">
-                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar">
+                                <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=50&h=50&fit=crop" class="feed-avatar">
                                 <div class="feed-text">
-                                    <strong>Andrew</strong> commented on workout: Squat felt heavy today but form was good.
-                                    <span class="feed-time">4h</span>
+                                    <strong>Jessica</strong> logged a new workout: Lower Body Power.
+                                    <span class="feed-time">10 mins ago</span>
                                 </div>
                             </div>
                             <div class="feed-item">
                                 <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar">
                                 <div class="feed-text">
-                                    <strong>Andrew</strong> updated body metrics
-                                    <span class="feed-time">4h</span>
-                                </div>
-                            </div>
-                            <div class="feed-item">
-                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop" class="feed-avatar">
-                                <div class="feed-text">
-                                    <strong>Andrew</strong> updated body metrics
-                                    <span class="feed-time">4h</span>
+                                    <strong>Michael</strong> updated his body weight metrics.
+                                    <span class="feed-time">1h ago</span>
                                 </div>
                             </div>
                         </div>
-                        <button class="btn-secondary">View Activity History</button>
+                        <button class="btn-secondary">View Complete Feed</button>
+                    </section>
+                </div>
+
+                <!-- Column 3: Quick Actions & Updates -->
+                <div class="column">
+                    <section class="card">
+                        <div class="card-title"><i data-lucide="zap"></i> Quick Actions</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn-secondary" id="cardAddClientBtn" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--accent-red); color: white; border: none; font-weight: 600;"><i data-lucide="user-plus" style="width: 18px;"></i> Add New Client</button>
+                            <button class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px;"><i data-lucide="file-plus" style="width: 18px;"></i> Create Template</button>
+                            <button class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px;"><i data-lucide="send" style="width: 18px;"></i> Send Broadcast</button>
+                        </div>
+                    </section>
+                    
+                    <section class="card">
+                        <div class="card-title"><i data-lucide="trending-up"></i> Platform Updates</div>
+                        <div class="note-item" style="background: var(--text-main); color: white; border-radius: var(--radius-md); padding: 16px;">
+                            <strong>✨ New Feature Available!</strong><br><br>
+                            You can now attach PDFs to meal plans. Try it out in the Library tab!
+                        </div>
                     </section>
                 </div>
             </div>
         </main>
+
+    <!-- Add Client Modal -->
+    <div id="addClientModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Client</h2>
+                <button class="close-modal icon-btn" id="closeModalBtn"><i data-lucide="x"></i></button>
+            </div>
+            <form id="addClientForm" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" required placeholder="John">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" required placeholder="Doe">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1 (555) 000-0000">
+                </div>
+                <div class="form-group">
+                    <label for="plan">Select Plan</label>
+                    <select id="plan" name="plan" class="modern-select" data-position="up">
+                        <option value="" disabled selected>Choose a package...</option>
+                        <option value="one-month-1">One Month Package 1</option>
+                        <option value="one-month-2">One Month Package 2</option>
+                        <option value="training-plan">Training Plan Only 6 Weeks</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelModalBtn">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Client</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="script.js"></script>
