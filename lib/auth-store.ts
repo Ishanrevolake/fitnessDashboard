@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import { setRememberSession, supabase } from "@/lib/supabase";
+import { getSupabaseConfigError, isSupabaseConfigured, setRememberSession, supabase } from "@/lib/supabase";
 
 export type AuthUser = {
   id: string;
@@ -51,6 +51,8 @@ export function mapSupabaseUser(user: User): AuthUser {
 }
 
 export async function getCurrentUser() {
+  if (!isSupabaseConfigured) return null;
+
   const {
     data: { user },
     error,
@@ -61,6 +63,10 @@ export async function getCurrentUser() {
 }
 
 export async function signInUser(email: string, password: string, remember = true) {
+  if (!isSupabaseConfigured) {
+    throw new Error(getSupabaseConfigError());
+  }
+
   setRememberSession(remember);
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -80,6 +86,10 @@ export async function signInUser(email: string, password: string, remember = tru
 }
 
 export async function signUpUser(input: SignUpInput, remember = true) {
+  if (!isSupabaseConfigured) {
+    throw new Error(getSupabaseConfigError());
+  }
+
   setRememberSession(remember);
 
   const { data, error } = await supabase.auth.signUp({
@@ -107,6 +117,8 @@ export async function signUpUser(input: SignUpInput, remember = true) {
 }
 
 export async function signOutUser() {
+  if (!isSupabaseConfigured) return;
+
   const { error } = await supabase.auth.signOut();
 
   if (error) {

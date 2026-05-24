@@ -10,7 +10,7 @@ import {
   type AuthUser,
   type SignUpInput,
 } from "@/lib/auth-store";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -28,6 +28,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
+
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
 
     getCurrentUser()
       .then((currentUser) => {

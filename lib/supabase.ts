@@ -5,6 +5,14 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const rememberKey = "alphaFitnessRememberSession";
+const fallbackSupabaseUrl = "https://placeholder.supabase.co";
+const fallbackSupabasePublishableKey = "placeholder-publishable-key";
+
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
+
+export function getSupabaseConfigError() {
+  return "Missing Supabase environment variables. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.";
+}
 
 function getAuthStorage(): Storage | undefined {
   if (typeof window === "undefined") return undefined;
@@ -48,11 +56,7 @@ export function setRememberSession(remember: boolean) {
   window.localStorage.setItem(rememberKey, String(remember));
 }
 
-if (!supabaseUrl || !supabasePublishableKey) {
-  throw new Error("Missing Supabase environment variables.");
-}
-
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+export const supabase = createClient(supabaseUrl || fallbackSupabaseUrl, supabasePublishableKey || fallbackSupabasePublishableKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
