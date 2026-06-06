@@ -137,7 +137,7 @@ export function DashboardHome() {
                       <TrendingUp size={16} style={{ color: "var(--text-muted)" }} />
                     </div>
                     <div className="metric-val">{clientsLoading ? "-" : pendingRenewals}</div>
-                    <span className="badge-tag" style={{ background: "rgba(230, 57, 70, 0.1)", color: "var(--accent-red)" }}>
+                    <span className="badge-tag" style={{ background: "rgba(var(--accent-rgb), 0.1)", color: "var(--accent-red)" }}>
                       Next 7 days
                     </span>
                   </div>

@@ -22,9 +22,11 @@ import { useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PageHeader } from "@/components/page-header";
 import { TabNavigation } from "@/components/tab-navigation";
-import { fetchClients } from "@/lib/api-client";
+import { useAuth } from "@/components/auth-provider";
+import { createBlogPostViaApi, createTestimonialViaApi, fetchBlogPosts, fetchClients, fetchTestimonials, updateTestimonialStatusViaApi } from "@/lib/api-client";
+import { hasTrainerAccess, type AuthUser } from "@/lib/auth-store";
 import { normalizeClientMealPlan } from "@/lib/meal-plan-utils";
-import type { FitnessClient } from "@/lib/types";
+import type { BlogPost, BlogPostInput, BlogPostStatus, FitnessClient, Testimonial, TestimonialInput } from "@/lib/types";
 
 type SectionKind = "analytics" | "leads" | "blog" | "testimonials" | "recipes" | "social" | "notifications";
 
@@ -41,6 +43,8 @@ type TableItem = {
   status: string;
   meta: string;
 };
+
+const testimonialCategoryOptions = ["Fat Loss", "Muscle Gain", "Strength", "Conditioning", "Lifestyle"];
 
 const sectionConfig: Record<
   SectionKind,
@@ -201,6 +205,7 @@ const sectionConfig: Record<
 export function AdminSectionPage({ section }: { section: SectionKind }) {
   const config = sectionConfig[section];
   const Icon = config.icon;
+  const { user } = useAuth();
   const [clients, setClients] = useState<FitnessClient[]>([]);
   const [loading, setLoading] = useState(section === "analytics");
   const [error, setError] = useState("");
@@ -339,6 +344,14 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
     );
   }
 
+  if (section === "blog") {
+    return <BlogPostsSection config={config} />;
+  }
+
+  if (section === "testimonials") {
+    return <TestimonialsSection user={user} isTrainer={user ? hasTrainerAccess(user.role) : false} />;
+  }
+
   return (
     <DashboardShell>
       <div className="dashboard-container">
@@ -405,6 +418,479 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
       </div>
     </DashboardShell>
   );
+}
+
+function BlogPostsSection({ config }: { config: (typeof sectionConfig)["blog"] }) {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState<BlogPostInput>({
+    title: "",
+    slug: "",
+    excerpt: "",
+    content: "",
+    status: "draft",
+    category: "Education",
+    coverImageUrl: "",
+  });
+
+  useEffect(() => {
+    setLoading(true);
+    setError("");
+    fetchBlogPosts()
+      .then(setPosts)
+      .catch((fetchError) => setError(fetchError instanceof Error ? fetchError.message : "Unable to load blog posts."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const publishedCount = posts.filter((post) => post.status === "published").length;
+  const draftCount = posts.filter((post) => post.status === "draft").length;
+  const latestPost = posts[0];
+
+  function updateForm<Key extends keyof BlogPostInput>(key: Key, value: BlogPostInput[Key]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function submitPost(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const createdPost = await createBlogPostViaApi(form);
+      setPosts((current) => [createdPost, ...current]);
+      setForm({
+        title: "",
+        slug: "",
+        excerpt: "",
+        content: "",
+        status: "draft",
+        category: "Education",
+        coverImageUrl: "",
+      });
+      setMessage(`${createdPost.title} saved to the database.`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save blog post.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <DashboardShell>
+      <div className="dashboard-container">
+        <PageHeader title="Blog Posts" subtitle="Create posts in the dashboard and load them from Supabase." />
+        <TabNavigation label="Database Posts" />
+
+        <main className="main-content">
+          {message ? <div className="auth-error success-message">{message}</div> : null}
+          {error ? <div className="auth-error">{error}</div> : null}
+
+          <section className="admin-stat-grid">
+            <AnalyticsStat label="Total posts" value={loading ? "-" : String(posts.length)} note="From blog_posts" icon={FileText} />
+            <AnalyticsStat label="Published" value={loading ? "-" : String(publishedCount)} note="Visible to readers" icon={Eye} />
+            <AnalyticsStat label="Drafts" value={loading ? "-" : String(draftCount)} note="Internal queue" icon={Edit3} />
+            <AnalyticsStat label="Latest update" value={latestPost ? formatShortDate(latestPost.updatedAt) : "-"} note={latestPost?.title ?? "No posts yet"} icon={TrendingUp} />
+          </section>
+
+          <section className="admin-content-grid">
+            <article className="card">
+              <div className="card-title">
+                <config.icon size={18} /> New blog post
+              </div>
+              <form className="modal-form" onSubmit={submitPost}>
+                <div className="form-group">
+                  <label htmlFor="blogTitle">Title</label>
+                  <input id="blogTitle" required value={form.title} onChange={(event) => updateForm("title", event.target.value)} placeholder="Protein Guide for Sri Lankan Meals" />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="blogSlug">Slug</label>
+                    <input id="blogSlug" value={form.slug} onChange={(event) => updateForm("slug", event.target.value)} placeholder="protein-guide-sri-lankan-meals" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="blogStatus">Status</label>
+                    <select id="blogStatus" className="modern-select" value={form.status} onChange={(event) => updateForm("status", event.target.value as BlogPostStatus)}>
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="blogCategory">Category</label>
+                    <input id="blogCategory" value={form.category} onChange={(event) => updateForm("category", event.target.value)} placeholder="Education" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="blogCover">Cover image URL</label>
+                    <input id="blogCover" value={form.coverImageUrl} onChange={(event) => updateForm("coverImageUrl", event.target.value)} placeholder="https://..." />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="blogExcerpt">Excerpt</label>
+                  <textarea id="blogExcerpt" required rows={3} value={form.excerpt} onChange={(event) => updateForm("excerpt", event.target.value)} placeholder="Short summary for cards and previews." />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="blogContent">Post content</label>
+                  <textarea id="blogContent" required rows={8} value={form.content} onChange={(event) => updateForm("content", event.target.value)} placeholder="Write the blog post body here." />
+                </div>
+
+                <button className="btn-primary toolbar-button" type="submit" disabled={saving}>
+                  <Plus size={16} /> {saving ? "Saving..." : config.action}
+                </button>
+              </form>
+            </article>
+
+            <aside className="card">
+              <div className="card-title">
+                <FileText size={18} /> Saved posts
+              </div>
+              <div className="admin-table">
+                {loading ? (
+                  <div className="admin-table-row">
+                    <div>
+                      <strong>Loading posts</strong>
+                      <span>Reading from Supabase.</span>
+                    </div>
+                  </div>
+                ) : posts.length ? (
+                  posts.map((post) => (
+                    <div className="admin-table-row" key={post.id}>
+                      <div>
+                        <strong>{post.title}</strong>
+                        <span>/{post.slug}</span>
+                      </div>
+                      <span className="status-pill">{post.status}</span>
+                      <span className="text-muted">{formatShortDate(post.updatedAt)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="admin-table-row">
+                    <div>
+                      <strong>No blog posts yet</strong>
+                      <span>Create the first post from the dashboard.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </section>
+        </main>
+      </div>
+    </DashboardShell>
+  );
+}
+
+function TestimonialsSection({ user, isTrainer }: { user: AuthUser | null; isTrainer: boolean }) {
+  if (!isTrainer) {
+    return <ClientTestimonialsSection user={user} />;
+  }
+
+  return <TrainerTestimonialsSection />;
+}
+
+function ClientTestimonialsSection({ user }: { user: AuthUser | null }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState<TestimonialInput>({
+    clientId: user?.id ?? "",
+    name: user?.name ?? "",
+    text: "",
+    category: testimonialCategoryOptions[0],
+    rating: 5,
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    setForm((current) => ({
+      ...current,
+      clientId: user.id,
+      name: current.name || user.name,
+    }));
+  }, [user]);
+
+  function updateForm<Key extends keyof TestimonialInput>(key: Key, value: TestimonialInput[Key]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function submitTestimonial(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const createdTestimonial = await createTestimonialViaApi(form);
+      setForm((current) => ({ ...current, text: "", rating: 5 }));
+      setMessage(`Thanks ${createdTestimonial.name}. Your testimonial was submitted for review.`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save testimonial.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <DashboardShell>
+      <div className="dashboard-container">
+        <PageHeader title="Testimonials" subtitle="Share your experience for trainer review." />
+        <TabNavigation label="Submit Review" />
+
+        <main className="main-content">
+          {message ? <div className="auth-error success-message">{message}</div> : null}
+          {error ? <div className="auth-error">{error}</div> : null}
+
+          <section className="admin-content-grid">
+            <article className="card">
+              <div className="card-title">
+                <Star size={18} /> Add testimonial
+              </div>
+              <form className="modal-form" onSubmit={submitTestimonial}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="testimonialName">Name</label>
+                    <input id="testimonialName" required value={form.name} onChange={(event) => updateForm("name", event.target.value)} placeholder="Your display name" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="testimonialRating">Star rate</label>
+                    <select id="testimonialRating" className="modern-select" value={form.rating} onChange={(event) => updateForm("rating", Number(event.target.value))}>
+                      <option value={5}>5 stars</option>
+                      <option value={4}>4 stars</option>
+                      <option value={3}>3 stars</option>
+                      <option value={2}>2 stars</option>
+                      <option value={1}>1 star</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="testimonialCategory">Category</label>
+                  <select id="testimonialCategory" className="modern-select" value={form.category} onChange={(event) => updateForm("category", event.target.value)}>
+                    {testimonialCategoryOptions.map((category) => (
+                      <option value={category} key={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="testimonialText">Testimonial text</label>
+                  <textarea
+                    id="testimonialText"
+                    required
+                    rows={8}
+                    value={form.text}
+                    onChange={(event) => updateForm("text", event.target.value)}
+                    placeholder="Write your feedback about the coaching, progress, or experience."
+                  />
+                </div>
+
+                <button className="btn-primary toolbar-button" type="submit" disabled={saving || !user}>
+                  <Star size={16} /> {saving ? "Submitting..." : "Submit testimonial"}
+                </button>
+              </form>
+            </article>
+
+            <aside className="card">
+              <div className="card-title">
+                <CheckCircle2 size={18} /> Review status
+              </div>
+              <div className="empty-state compact-empty">
+                <strong>New testimonials are saved as Pending.</strong>
+                <span className="text-muted">Your trainer can approve them from the trainer dashboard before they appear on the public website.</span>
+              </div>
+            </aside>
+          </section>
+        </main>
+      </div>
+    </DashboardShell>
+  );
+}
+
+function TrainerTestimonialsSection() {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    setError("");
+    fetchTestimonials()
+      .then(setTestimonials)
+      .catch((fetchError) => setError(fetchError instanceof Error ? fetchError.message : "Unable to load testimonials."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const pendingCount = testimonials.filter((testimonial) => testimonial.status === "pending").length;
+  const approvedCount = testimonials.filter((testimonial) => testimonial.status === "approved").length;
+  const averageRating = testimonials.length
+    ? (testimonials.reduce((total, testimonial) => total + testimonial.rating, 0) / testimonials.length).toFixed(1)
+    : "-";
+  const latestTestimonial = testimonials[0];
+
+  async function approveTestimonial(testimonial: Testimonial) {
+    setSavingId(testimonial.id);
+    setError("");
+    setMessage("");
+
+    try {
+      const updatedTestimonial = await updateTestimonialStatusViaApi(testimonial.id, "approved");
+      setTestimonials((current) => current.map((item) => (item.id === updatedTestimonial.id ? updatedTestimonial : item)));
+      setMessage(`${updatedTestimonial.name}'s testimonial was approved.`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to approve testimonial.");
+    } finally {
+      setSavingId("");
+    }
+  }
+
+  return (
+    <DashboardShell>
+      <div className="dashboard-container">
+        <PageHeader title="Testimonials" subtitle="Review pending client testimonials and approve public-ready feedback." />
+        <TabNavigation label="Review Queue" />
+
+        <main className="main-content">
+          {message ? <div className="auth-error success-message">{message}</div> : null}
+          {error ? <div className="auth-error">{error}</div> : null}
+
+          <section className="admin-stat-grid">
+            <AnalyticsStat label="Total" value={loading ? "-" : String(testimonials.length)} note="Database testimonials" icon={Star} />
+            <AnalyticsStat label="Pending" value={loading ? "-" : String(pendingCount)} note="Need review" icon={CheckCircle2} />
+            <AnalyticsStat label="Approved" value={loading ? "-" : String(approvedCount)} note="Public ready" icon={Eye} />
+            <AnalyticsStat label="Avg rating" value={loading ? "-" : String(averageRating)} note={latestTestimonial ? `Latest ${formatShortDate(latestTestimonial.createdAt)}` : "No testimonials yet"} icon={TrendingUp} />
+          </section>
+
+          <section className="admin-content-grid">
+            <article className="card">
+              <div className="card-title">
+                <Star size={18} /> Pending approvals
+              </div>
+              <div className="admin-table">
+                {loading ? (
+                  <TestimonialLoadingRow />
+                ) : pendingCount ? (
+                  testimonials
+                    .filter((testimonial) => testimonial.status === "pending")
+                    .map((testimonial) => (
+                      <TestimonialReviewRow
+                        key={testimonial.id}
+                        testimonial={testimonial}
+                        saving={savingId === testimonial.id}
+                        onApprove={() => approveTestimonial(testimonial)}
+                      />
+                    ))
+                ) : (
+                  <div className="admin-table-row">
+                    <div>
+                      <strong>No pending testimonials</strong>
+                      <span>Client submissions will appear here for approval.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </article>
+
+            <aside className="card">
+              <div className="card-title">
+                <Eye size={18} /> Approved testimonials
+              </div>
+              <div className="admin-table">
+                {loading ? (
+                  <TestimonialLoadingRow />
+                ) : approvedCount ? (
+                  testimonials
+                    .filter((testimonial) => testimonial.status === "approved")
+                    .map((testimonial) => <TestimonialApprovedRow key={testimonial.id} testimonial={testimonial} />)
+                ) : (
+                  <div className="admin-table-row">
+                    <div>
+                      <strong>No approved testimonials yet</strong>
+                      <span>Approved testimonials will be ready for your public website.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </section>
+        </main>
+      </div>
+    </DashboardShell>
+  );
+}
+
+function TestimonialLoadingRow() {
+  return (
+    <div className="admin-table-row">
+      <div>
+        <strong>Loading testimonials</strong>
+        <span>Reading from Supabase.</span>
+      </div>
+    </div>
+  );
+}
+
+function TestimonialReviewRow({ testimonial, saving, onApprove }: { testimonial: Testimonial; saving: boolean; onApprove: () => void }) {
+  return (
+    <div className="admin-table-row testimonial-row">
+      <div>
+        <strong>{testimonial.name}</strong>
+        <span>{testimonial.text}</span>
+        <span className="text-muted">{testimonial.category}</span>
+        <RatingStars rating={testimonial.rating} />
+      </div>
+      <span className="status-pill">Pending</span>
+      <button className="btn-primary compact-action" type="button" disabled={saving} onClick={onApprove}>
+        <CheckCircle2 size={15} /> {saving ? "Approving..." : "Approve"}
+      </button>
+    </div>
+  );
+}
+
+function TestimonialApprovedRow({ testimonial }: { testimonial: Testimonial }) {
+  return (
+    <div className="admin-table-row testimonial-row">
+      <div>
+        <strong>{testimonial.name}</strong>
+        <span>{testimonial.text}</span>
+        <span className="text-muted">{testimonial.category}</span>
+        <RatingStars rating={testimonial.rating} />
+      </div>
+      <span className="status-pill status-success">Approved</span>
+      <span className="text-muted">{formatShortDate(testimonial.approvedAt ?? testimonial.updatedAt)}</span>
+    </div>
+  );
+}
+
+function RatingStars({ rating }: { rating: number }) {
+  return (
+    <span className="testimonial-stars" aria-label={`${rating} out of 5 stars`}>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <Star key={index} size={13} fill={index < rating ? "currentColor" : "none"} />
+      ))}
+    </span>
+  );
+}
+
+function formatShortDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function AnalyticsStat({ label, value, note, icon: Icon }: StatItem) {

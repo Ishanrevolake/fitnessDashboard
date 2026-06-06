@@ -95,6 +95,15 @@ export const defaultClients: FitnessClient[] = [
     daysLeft: 14,
     goal: "Reduce body fat while improving strength consistency.",
     timezone: "America/Los_Angeles",
+    profile: {
+      gender: "Male",
+      age: "32",
+      height: "178 cm",
+      weight: "75 kg",
+      waist: "82 cm",
+      activityLevel: "Intermediate",
+      injuries: "No current injuries",
+    },
     notes: [
       {
         id: "note-ben-travel",
@@ -122,6 +131,15 @@ export const defaultClients: FitnessClient[] = [
     daysLeft: 5,
     goal: "Build lower-body strength and improve recovery markers.",
     timezone: "America/New_York",
+    profile: {
+      gender: "Female",
+      age: "29",
+      height: "165 cm",
+      weight: "62 kg",
+      waist: "70 cm",
+      activityLevel: "Advanced",
+      injuries: "Previous ankle sprain",
+    },
     notes: [
       {
         id: "note-jessica-lower",
@@ -148,6 +166,15 @@ export const defaultClients: FitnessClient[] = [
     daysLeft: 0,
     goal: "Restart habit tracking and rebuild baseline conditioning.",
     timezone: "Europe/London",
+    profile: {
+      gender: "Male",
+      age: "41",
+      height: "181 cm",
+      weight: "88 kg",
+      waist: "94 cm",
+      activityLevel: "Beginner",
+      injuries: "Lower back sensitivity",
+    },
     notes: [
       {
         id: "note-marcus-renewal",

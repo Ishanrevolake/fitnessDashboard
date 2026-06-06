@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   getCurrentUser,
   mapSupabaseUser,
+  mapSupabaseUserWithProfile,
   signInUser,
   signOutUser,
   signUpUser,
@@ -45,8 +46,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? mapSupabaseUser(session.user) : null);
-      setLoading(false);
+      if (!session?.user) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      mapSupabaseUserWithProfile(session.user)
+        .then((nextUser) => {
+          if (active) setUser(nextUser);
+        })
+        .catch(() => {
+          if (active) setUser(mapSupabaseUser(session.user));
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
     });
 
     return () => {

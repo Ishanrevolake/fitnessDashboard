@@ -3,23 +3,30 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  BarChart3,
-  ChevronDown,
+  BriefcaseBusiness,
+  Coffee,
   CreditCard,
   Dumbbell,
-  FileText,
+  HeartPulse,
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquareText,
   PanelLeftClose,
   PanelLeftOpen,
+  PenLine,
+  Phone,
   Settings,
+  Share2,
+  SlidersHorizontal,
+  SquareLibrary,
+  Star,
   Utensils,
   Users,
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { hasTrainerAccess } from "@/lib/auth-store";
 
@@ -31,18 +38,20 @@ type DashboardShellFallbackProps = {
   children?: React.ReactNode;
 };
 
-type NavGroupId = "overview" | "clients" | "content" | "settings";
+type NavGroupId = "overview" | "clients" | "content" | "training" | "business";
 
 type NavChild = {
   label: string;
   href: string;
+  icon: LucideIcon;
+  badge?: string;
+  badgeTone?: "green" | "orange";
   match?: (pathname: string, searchParams: URLSearchParams) => boolean;
 };
 
 type NavGroup = {
   id: NavGroupId;
   label: string;
-  icon: LucideIcon;
   children: NavChild[];
   match?: (pathname: string) => boolean;
 };
@@ -51,49 +60,58 @@ const navGroups: NavGroup[] = [
   {
     id: "overview",
     label: "Overview",
-    icon: BarChart3,
     children: [
-      { label: "Analytics", href: "/analytics" },
-      { label: "Payment Slips", href: "/payments" },
+      { label: "Dashboard", href: "/", icon: LayoutDashboard },
+      { label: "Analytics", href: "/analytics", icon: HeartPulse },
     ],
   },
   {
     id: "clients",
     label: "Clients",
-    icon: Users,
     match: (pathname) => pathname.startsWith("/client-profile"),
     children: [
-      { label: "All Clients", href: "/clients", match: (pathname, searchParams) => pathname === "/clients" && !searchParams.get("status") },
-      { label: "Active Clients", href: "/clients?status=active", match: (pathname, searchParams) => pathname === "/clients" && searchParams.get("status") === "active" },
-      { label: "Inactive Clients", href: "/clients?status=inactive", match: (pathname, searchParams) => pathname === "/clients" && searchParams.get("status") === "inactive" },
-      { label: "Exercises", href: "/exercises" },
+      { label: "Clients", href: "/clients", icon: Users, match: (pathname) => pathname === "/clients" || pathname.startsWith("/client-profile") },
+      { label: "Programmes", href: "/programs", icon: SlidersHorizontal, match: (pathname, searchParams) => pathname === "/programs" && !searchParams.get("library") },
     ],
   },
   {
     id: "content",
     label: "Content",
-    icon: FileText,
     children: [
-      { label: "Meal Plan Templates", href: "/meal-plans" },
+      { label: "Blog Posts", href: "/blog-posts", icon: PenLine },
+      { label: "Testimonials", href: "/testimonials", icon: SquareLibrary },
+      { label: "Recipe Book", href: "/recipes", icon: Utensils },
+      { label: "Social Media", href: "/social", icon: Share2 },
     ],
   },
   {
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
+    id: "training",
+    label: "Training",
     children: [
-      { label: "Your Account", href: "/settings/account" },
-      { label: "Default Settings", href: "/settings/defaults" },
+      { label: "Exercise Library", href: "/exercises", icon: Coffee },
+      { label: "Workout Library", href: "/programs?library=workouts", icon: BriefcaseBusiness, match: (pathname, searchParams) => pathname === "/programs" && searchParams.get("library") === "workouts" },
+    ],
+  },
+  {
+    id: "business",
+    label: "Business",
+    children: [
+      { label: "Payment Verification", href: "/payments", icon: CreditCard },
+      { label: "Ask Alpha Payments", href: "/ask-alpha-payments", icon: CreditCard },
+      { label: "Ask Alpha Inbox", href: "/ask-alpha-inbox", icon: MessageSquareText },
+      { label: "Leads", href: "/leads", icon: Phone },
+      { label: "Settings", href: "/settings/account", icon: Settings, match: (pathname) => pathname.startsWith("/settings") },
     ],
   },
 ];
 
 const clientNavItems: NavChild[] = [
-  { label: "Meal Plans", href: "/meal-plans" },
-  { label: "Exercises", href: "/exercises" },
+  { label: "Meal Plans", href: "/meal-plans", icon: Utensils },
+  { label: "Exercises", href: "/exercises", icon: Dumbbell },
+  { label: "Testimonials", href: "/testimonials", icon: Star },
 ];
 
-const clientAllowedRoutes = ["/", "/meal-plans", "/exercises"];
+const clientAllowedRoutes = ["/", "/meal-plans", "/exercises", "/testimonials"];
 
 function isRouteActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -108,7 +126,7 @@ function getRequiredGroup(pathname: string): NavGroupId | undefined {
 }
 
 function SidebarIcon({ icon: Icon }: { icon: LucideIcon }) {
-  return <Icon size={20} strokeWidth={2} />;
+  return <Icon size={16} strokeWidth={1.8} />;
 }
 
 export function DashboardShell({ children }: DashboardShellProps) {
@@ -126,7 +144,7 @@ function DashboardShellFallback({ children }: DashboardShellFallbackProps) {
         <div className="sidebar-header">
           <Link className="brand" href="/">
             <div className="brand-logo">A</div>
-            <span className="brand-text">AlphaFitness</span>
+            <span className="brand-text">ALFA LEE</span>
           </Link>
         </div>
       </aside>
@@ -143,10 +161,6 @@ function DashboardShellContent({ children }: DashboardShellProps) {
   const trainerAccess = user ? hasTrainerAccess(user.role) : false;
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<NavGroupId[]>(() => {
-    const requiredGroup = getRequiredGroup(pathname);
-    return requiredGroup ? [requiredGroup] : [];
-  });
 
   useEffect(() => {
     const savedCollapsed = window.localStorage.getItem("sidebarState");
@@ -170,33 +184,13 @@ function DashboardShellContent({ children }: DashboardShellProps) {
   useEffect(() => {
     setMobileOpen(false);
 
-    const requiredGroup = trainerAccess ? getRequiredGroup(pathname) : undefined;
-    const nextGroups = requiredGroup ? [requiredGroup] : [];
-    setOpenGroups(nextGroups);
-    window.localStorage.setItem("openSubmenus", JSON.stringify(nextGroups));
   }, [pathname, trainerAccess]);
-
-  const openGroupSet = useMemo(() => new Set(openGroups), [openGroups]);
 
   function toggleSidebar() {
     setCollapsed((current) => {
       const nextCollapsed = !current;
       window.localStorage.setItem("sidebarState", nextCollapsed ? "collapsed" : "expanded");
       return nextCollapsed;
-    });
-  }
-
-  function toggleGroup(groupId: NavGroupId) {
-    if (collapsed) {
-      setCollapsed(false);
-      window.localStorage.setItem("sidebarState", "expanded");
-    }
-
-    setOpenGroups((current) => {
-      const nextGroups = current.includes(groupId) ? [] : [groupId];
-
-      window.localStorage.setItem("openSubmenus", JSON.stringify(nextGroups));
-      return nextGroups;
     });
   }
 
@@ -236,7 +230,7 @@ function DashboardShellContent({ children }: DashboardShellProps) {
         <div className="sidebar-header">
           <Link className="brand" href="/" onClick={() => setMobileOpen(false)}>
             <div className="brand-logo">A</div>
-            <span className="brand-text">AlphaFitness</span>
+            <span className="brand-text">ALFA LEE</span>
           </Link>
           <button className="toggle-btn icon-btn desktop-collapse" type="button" onClick={toggleSidebar} aria-label="Toggle sidebar">
             {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
@@ -246,22 +240,13 @@ function DashboardShellContent({ children }: DashboardShellProps) {
           </button>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Main navigation">
-          <div className="nav-item">
-            <Link href="/" className={`nav-link ${pathname === "/" ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
-              <SidebarIcon icon={LayoutDashboard} />
-              <span className="nav-text">Dashboard</span>
-            </Link>
-          </div>
-
+        <nav className="sidebar-nav alf-sidebar-nav" aria-label="Main navigation">
           {!trainerAccess
             ? clientNavItems.map((item) => {
-                const Icon = item.href === "/meal-plans" ? Utensils : Dumbbell;
-
                 return (
                   <div className="nav-item" key={item.href}>
                     <Link href={item.href} className={`nav-link ${isRouteActive(pathname, item.href) ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
-                      <SidebarIcon icon={Icon} />
+                      <SidebarIcon icon={item.icon} />
                       <span className="nav-text">{item.label}</span>
                     </Link>
                   </div>
@@ -270,31 +255,18 @@ function DashboardShellContent({ children }: DashboardShellProps) {
             : null}
 
           {trainerAccess ? navGroups.map((group) => {
-            const expanded = openGroupSet.has(group.id);
-            const active = isGroupActive(group);
-
             return (
-              <div className={`nav-item has-submenu ${expanded ? "open" : ""}`} key={group.id}>
-                <button
-                  type="button"
-                  className={`nav-link submenu-toggle ${active ? "active" : ""}`}
-                  onClick={() => toggleGroup(group.id)}
-                  aria-expanded={expanded}
-                  aria-controls={`${group.id}-submenu`}
-                >
-                  <SidebarIcon icon={group.id === "overview" && pathname.startsWith("/payments") ? CreditCard : group.icon} />
-                  <span className="nav-text">{group.label}</span>
-                  <ChevronDown className="chevron" />
-                </button>
-                <ul className="submenu" id={`${group.id}-submenu`}>
-                  {group.children.map((child) => (
-                    <li key={child.href}>
-                      <Link className={isChildActive(child) ? "active" : ""} href={child.href} onClick={() => setMobileOpen(false)}>
-                        {child.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+              <div className="sidebar-section" key={group.id}>
+                <div className="sidebar-label">{group.label}</div>
+                {group.children.map((child) => (
+                  <div className="nav-item" key={`${group.id}-${child.href}-${child.label}`}>
+                    <Link href={child.href} className={`nav-link ${isChildActive(child) ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+                      <SidebarIcon icon={child.icon} />
+                      <span className="nav-text">{child.label}</span>
+                      {child.badge ? <span className={`nav-badge ${child.badgeTone ?? "green"}`}>{child.badge}</span> : null}
+                    </Link>
+                  </div>
+                ))}
               </div>
             );
           }) : null}

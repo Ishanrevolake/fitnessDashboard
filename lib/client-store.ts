@@ -61,6 +61,7 @@ function normalizeClient(client: FitnessClient): FitnessClient {
 
   return {
     ...client,
+    profile: client.profile ?? {},
     workoutPlan: {
       ...workoutPlan,
       days: getPlanDays(workoutPlan).map((day) => ({
@@ -117,6 +118,7 @@ export function createClient(input: NewClientInput): FitnessClient {
     daysLeft: packageOption?.durationDays ?? 30,
     goal: "New client goal pending.",
     timezone: "Local Time",
+    profile: {},
     notes: [],
     photos: [],
     metrics: defaultClients[0].metrics,

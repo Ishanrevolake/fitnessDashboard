@@ -1,4 +1,15 @@
-import type { ClientMealPlan, ClientNote, FitnessClient, NewClientInput, WorkoutPlan } from "./types";
+import type { BlogPost, BlogPostInput, ClientMealPlan, ClientNote, FitnessClient, NewClientInput, Testimonial, TestimonialInput, TestimonialStatus, WorkoutPlan } from "./types";
+import { supabase } from "./supabase";
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
 
 export async function fetchClients(baseUrl = "") {
   const response = await fetch(`${baseUrl}/api/clients`, {
@@ -122,4 +133,89 @@ export async function addClientNoteViaApi(clientId: string, body: string, baseUr
   }
 
   return (await response.json()) as ClientNote;
+}
+
+export async function fetchBlogPosts(baseUrl = "") {
+  const response = await fetch(`${baseUrl}/api/blog-posts`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to load blog posts");
+  }
+
+  return (await response.json()) as BlogPost[];
+}
+
+export async function createBlogPostViaApi(input: BlogPostInput, baseUrl = "") {
+  const response = await fetch(`${baseUrl}/api/blog-posts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to create blog post");
+  }
+
+  return (await response.json()) as BlogPost;
+}
+
+export async function fetchTestimonials(baseUrl = "") {
+  const authHeaders = await getAuthHeaders();
+  const response = await fetch(`${baseUrl}/api/testimonials`, {
+    headers: { Accept: "application/json", ...authHeaders },
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to load testimonials");
+  }
+
+  return (await response.json()) as Testimonial[];
+}
+
+export async function createTestimonialViaApi(input: TestimonialInput, baseUrl = "") {
+  const authHeaders = await getAuthHeaders();
+  const response = await fetch(`${baseUrl}/api/testimonials`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to save testimonial");
+  }
+
+  return (await response.json()) as Testimonial;
+}
+
+export async function updateTestimonialStatusViaApi(id: string, status: TestimonialStatus, baseUrl = "") {
+  const authHeaders = await getAuthHeaders();
+  const response = await fetch(`${baseUrl}/api/testimonials`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify({ id, status }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to update testimonial");
+  }
+
+  return (await response.json()) as Testimonial;
 }

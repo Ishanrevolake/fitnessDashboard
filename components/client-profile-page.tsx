@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import {
+  Activity,
+  CalendarDays,
   Camera,
   ChevronLeft,
   Dumbbell,
@@ -12,11 +14,15 @@ import {
   MessageCircle,
   MessageSquare,
   MoreVertical,
+  Phone,
   Plus,
   PlusCircle,
+  Ruler,
+  Scale,
   Star,
   Trash2,
   Utensils,
+  UserRound,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -51,6 +57,7 @@ export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
   const [noteBody, setNoteBody] = useState("");
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("Overview");
 
   useEffect(() => {
     setPrograms(getStoredPrograms());
@@ -221,35 +228,143 @@ export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
   }
 
   const visibleMealPlan = normalizeClientMealPlan(client.mealPlan);
+  const clientProfileTabs = [
+    { label: "Overview", href: "#overview" },
+    { label: "Meal Plan", href: "#meal-plan" },
+    { label: "Workout Plan", href: "#workout-plan" },
+  ];
+  const latestWeight = client.profile.weight || `${client.metrics.weight.at(-1) ?? "-"} kg`;
+  const profileMetrics = [
+    { label: "Weight", value: latestWeight },
+    { label: "Height", value: client.profile.height || "Not added" },
+    { label: "Waist", value: client.profile.waist || "Not added" },
+    { label: "Gender", value: client.profile.gender || "Not added" },
+    { label: "Age", value: client.profile.age || client.profile.dateOfBirth || "Not added" },
+    { label: "Activity", value: client.profile.activityLevel || "Not added" },
+  ];
+  const mealScheduleRows = visibleMealPlan.days.flatMap((day) =>
+    day.meals.map((meal) => ({
+      dayId: day.id,
+      day: day.day,
+      meal,
+      nutrition: estimateMealNutrition(meal),
+    })),
+  );
+  const mealTotals = mealScheduleRows.reduce(
+    (totals, row) => ({
+      calories: totals.calories + row.nutrition.calories,
+      protein: totals.protein + row.nutrition.protein,
+      carbs: totals.carbs + row.nutrition.carbs,
+      fat: totals.fat + row.nutrition.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
 
   return (
     <DashboardShell>
       <div className="dashboard-container">
-        <header className="top-header">
-          <div className="client-brand">
-            <Link href="/clients" style={{ color: "var(--text-main)", display: "inline-flex" }} aria-label="Back to clients">
-              <ChevronLeft size={24} />
+        <main className="main-content client-profile-layout">
+          <aside className="client-summary-panel">
+            <Link href="/clients" className="client-summary-back" aria-label="Back to clients">
+              <ChevronLeft size={18} /> Clients
             </Link>
-            <img src={client.avatar} alt={client.name} className="avatar-header" />
-            <h1 className="client-name">{client.name}</h1>
-          </div>
-          <div className="header-right">
-            <div className="header-icons">
-              <button className="icon-btn" type="button" aria-label="Message client">
-                <MessageSquare size={20} />
-              </button>
-              <button className="icon-btn" type="button" aria-label="More actions">
-                <MoreVertical size={20} />
-              </button>
+            <div className="client-summary-hero">
+              <img src={client.avatar} alt={client.name} className="client-summary-avatar" />
             </div>
-          </div>
-        </header>
-        <TabNavigation />
+            <div className="client-summary-body">
+              <h1 className="client-summary-name">{client.name}</h1>
+              <span className="client-summary-package">{client.packageName ?? getPackageLabel(client.packageId)}</span>
+              <span className={`client-summary-status ${client.daysLeft <= 7 ? "ending" : "active"}`}>
+                {client.daysLeft > 0 ? `Ending in ${client.daysLeft} days` : "Inactive"}
+              </span>
 
-        <main className="main-content">
-          <div className="dashboard-grid client-profile-grid">
-            <div className="column">
-              <section className="card training-profile-card">
+              <div className="client-summary-metrics">
+                {profileMetrics.map((item) => (
+                  <div className="client-summary-metric" key={item.label}>
+                    <strong>{item.value}</strong>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="client-summary-section">
+                <span className="client-meta-label">Contact</span>
+                <ProfileDatum icon={<Mail size={16} />} label="Email" value={client.email} />
+                <ProfileDatum icon={<Phone size={16} />} label="Phone" value={client.phone} />
+                <ProfileDatum icon={<Home size={16} />} label="Timezone" value={client.timezone} />
+              </div>
+
+              <div className="client-summary-section">
+                <span className="client-meta-label">Goals & Tags</span>
+                <div className="client-summary-tags">
+                  <span>{client.goal}</span>
+                  {client.profile.activityLevel ? <span>{client.profile.activityLevel}</span> : null}
+                </div>
+              </div>
+
+              <div className="client-summary-section">
+                <span className="client-meta-label danger-label">Injuries & Limitations</span>
+                <div className="client-summary-tags danger">
+                  <span>{client.profile.injuries || "Not added"}</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section className="client-profile-workspace">
+            <TabNavigation label={activeTab} tabs={clientProfileTabs} onSelect={setActiveTab} />
+
+            <div className="client-tab-panel">
+              {activeTab === "Overview" ? (
+                <div className="client-overview-grid" id="overview">
+                  <section className="card notes-profile-card">
+                    <div className="card-title split-title">
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                        <Edit3 size={18} style={{ color: "#F59E0B" }} /> Trainer Notes
+                      </span>
+                      <button className="btn-primary toolbar-button compact-button" type="button" onClick={() => setNoteModalOpen(true)}>
+                        <Plus size={14} /> Add Note
+                      </button>
+                    </div>
+                    {client.notes.length ? (
+                      client.notes.map((note) => (
+                        <div className="note-item profile-note" key={note.id}>
+                          <div style={{ color: "#3B82F6", fontSize: 18, lineHeight: 1 }}>-</div>
+                          <div>
+                            {note.body}
+                            <span className="feed-time" style={{ marginTop: 6 }}>
+                              {note.createdAt}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="empty-state compact-empty">No trainer notes yet.</div>
+                    )}
+                  </section>
+
+                  <section className="card gallery-profile-card">
+                    <div className="card-title split-title">
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                        <Camera size={18} style={{ color: "#0EA5E9" }} /> Progress Gallery
+                      </span>
+                      <button className="icon-btn" type="button" aria-label="Add progress photo">
+                        <PlusCircle size={18} />
+                      </button>
+                    </div>
+                    <div className="gallery-grid">
+                      {client.photos.map((photo) => (
+                        <button key={photo} className="gallery-button" type="button" onClick={() => setLightboxImage(photo)}>
+                          <img src={photo} alt="Progress photo" className="gallery-img" />
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              ) : null}
+
+              {activeTab === "Workout Plan" ? (
+                <section className="card training-profile-card" id="workout-plan">
                 <div className="card-title split-title">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                     <Dumbbell size={18} /> Training
@@ -325,8 +440,10 @@ export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
                   </button>
                 </div>
               </section>
+              ) : null}
 
-              <section className="card meal-profile-card">
+              {activeTab === "Meal Plan" ? (
+                <section className="card meal-profile-card" id="meal-plan">
                 <div className="card-title split-title">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                     <Utensils size={18} /> Meal Plan
@@ -335,119 +452,51 @@ export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
                     <Edit3 size={14} /> Edit Meals
                   </button>
                 </div>
-                <div className="workout-plan-summary">
-                  <div>
+                <div className="meal-schedule-card">
+                  <div className="meal-schedule-focus">
                     <span className="client-meta-label">Nutrition Focus</span>
                     <p>{visibleMealPlan.focus}</p>
                   </div>
-                  <div className="assigned-workout-days">
-                    {visibleMealPlan.days.map((day) => (
-                      <div className="assigned-workout-day" key={day.id}>
-                        <div className="assigned-day-header">
-                          <strong>{day.day}</strong>
-                          <span>{day.meals.length} meals</span>
-                        </div>
-                        {day.meals.length ? (
-                          <div className="assigned-exercise-list">
-                            {day.meals.map((meal) => (
-                              <div className="assigned-exercise-row" key={meal.id}>
-                                <div>
-                                  <strong>{meal.mealTime}: {meal.name}</strong>
-                                  <span>{meal.items.length} recipe lines</span>
-                                </div>
-                                <button
-                                  className="btn-secondary inline-button meal-remove-button"
-                                  type="button"
-                                  onClick={() => removeMealFromPlan(day.id, meal.id)}
-                                >
-                                  Remove
-                                </button>
-                                {meal.notes ? <p>{meal.notes}</p> : null}
-                              </div>
-                            ))}
+                  {mealScheduleRows.length ? (
+                    <div className="meal-schedule-list">
+                      {mealScheduleRows.map(({ dayId, day, meal, nutrition }) => (
+                        <div className="meal-schedule-row" key={`${dayId}-${meal.id}`}>
+                          <time>{getMealDisplayTime(meal.mealTime)}</time>
+                          <div className="meal-schedule-main">
+                            <div className="meal-schedule-heading">
+                              <strong>{meal.mealTime || meal.name}</strong>
+                              <span>{day}</span>
+                            </div>
+                            <p>{meal.items.length ? meal.items.join(" - ") : meal.name}</p>
+                            <div className="meal-schedule-macros">
+                              <span>{nutrition.calories} kcal</span>
+                              <span>P: {nutrition.protein}g</span>
+                              <span>C: {nutrition.carbs}g</span>
+                              <span>F: {nutrition.fat}g</span>
+                            </div>
+                            {meal.notes ? <p className="meal-schedule-note">{meal.notes}</p> : null}
                           </div>
-                        ) : (
-                          <span className="text-muted">No meals assigned yet.</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {visibleMealPlan.trainerNotes ? <p className="text-muted">{visibleMealPlan.trainerNotes}</p> : null}
-                </div>
-              </section>
-
-            </div>
-
-            <div className="column">
-              <section className="card notes-profile-card">
-                <div className="card-title split-title">
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                    <Edit3 size={18} style={{ color: "#F59E0B" }} /> Notes
-                  </span>
-                  <button className="btn-primary toolbar-button compact-button" type="button" onClick={() => setNoteModalOpen(true)}>
-                    <Plus size={14} /> Add Note
-                  </button>
-                </div>
-                {client.notes.map((note) => (
-                  <div className="note-item profile-note" key={note.id}>
-                    <div style={{ color: "#3B82F6", fontSize: 18, lineHeight: 1 }}>-</div>
-                    <div>
-                      {note.body}
-                      <span className="feed-time" style={{ marginTop: 6 }}>
-                        {note.createdAt}
-                      </span>
+                          <button className="meal-row-remove" type="button" onClick={() => removeMealFromPlan(dayId, meal.id)}>
+                            Remove
+                          </button>
+                        </div>
+                      ))}
                     </div>
+                  ) : (
+                    <div className="empty-state compact-empty">No meals assigned yet.</div>
+                  )}
+                  <div className="meal-schedule-totals">
+                    <MealTotal label="Total kcal" value={mealTotals.calories} tone="calories" />
+                    <MealTotal label="Protein" value={mealTotals.protein} suffix="g" tone="protein" />
+                    <MealTotal label="Carbs" value={mealTotals.carbs} suffix="g" tone="carbs" />
+                    <MealTotal label="Fats" value={mealTotals.fat} suffix="g" tone="fat" />
                   </div>
-                ))}
+                  {visibleMealPlan.trainerNotes ? <p className="text-muted meal-plan-note">{visibleMealPlan.trainerNotes}</p> : null}
+                </div>
               </section>
-
+              ) : null}
             </div>
-
-            <div className="column">
-              <section className="card profile-profile-card">
-                <div className="card-title split-title">
-                  Profile
-                  <Star size={18} style={{ color: "var(--border-light)", fill: "var(--border-light)" }} />
-                </div>
-                <div style={{ display: "flex", gap: 12, marginBottom: 16, justifyContent: "center" }}>
-                  <div className="round-action">
-                    <MessageCircle size={16} />
-                  </div>
-                  <div className="round-action">
-                    <FileText size={16} />
-                  </div>
-                </div>
-                <div className="profile-info">
-                  <div className="info-item">
-                    <Mail size={16} /> {client.email}
-                  </div>
-                  <div className="info-item">
-                    <Home size={16} /> {client.timezone}
-                  </div>
-                  <div className="info-item">Package: {getPackageLabel(client.packageId)}</div>
-                  <div className="info-item">Goal: {client.goal}</div>
-                </div>
-              </section>
-
-              <section className="card gallery-profile-card">
-                <div className="card-title split-title">
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                    <Camera size={18} style={{ color: "#0EA5E9" }} /> Progress Gallery
-                  </span>
-                  <button className="icon-btn" type="button" aria-label="Add progress photo">
-                    <PlusCircle size={18} />
-                  </button>
-                </div>
-                <div className="gallery-grid">
-                  {client.photos.map((photo) => (
-                    <button key={photo} className="gallery-button" type="button" onClick={() => setLightboxImage(photo)}>
-                      <img src={photo} alt="Progress photo" className="gallery-img" />
-                    </button>
-                  ))}
-                </div>
-              </section>
-            </div>
-          </div>
+          </section>
         </main>
       </div>
 
@@ -497,6 +546,68 @@ function TrainingStat({
       </div>
       <div className="stat-label" style={{ color: tone === "green" ? "var(--accent-green)" : "var(--accent-red)" }}>
         {note}
+      </div>
+    </div>
+  );
+}
+
+function getMealDisplayTime(mealTime: string) {
+  const normalized = mealTime.toLowerCase();
+  if (normalized.includes("breakfast")) return "07:00";
+  if (normalized.includes("morning")) return "10:30";
+  if (normalized.includes("lunch")) return "13:00";
+  if (normalized.includes("pre")) return "16:00";
+  if (normalized.includes("dinner")) return "19:00";
+  if (normalized.includes("evening")) return "21:00";
+  if (/^\d{1,2}:\d{2}/.test(mealTime)) return mealTime;
+  return "--:--";
+}
+
+function estimateMealNutrition(meal: AssignedMeal) {
+  const text = [meal.name, ...meal.items, meal.notes].join(" ").toLowerCase();
+  const proteinSignals = (text.match(/chicken|beef|fish|salmon|tuna|egg|yogurt|cheese|protein|whey|milk|paneer|tofu/g) ?? []).length;
+  const carbSignals = (text.match(/rice|oat|toast|bread|wrap|potato|banana|fruit|pasta|noodle|honey|flour/g) ?? []).length;
+  const fatSignals = (text.match(/avocado|almond|peanut|butter|oil|nuts|cashew|coconut|cheese/g) ?? []).length;
+  const base = 230 + meal.items.length * 24;
+  const calories = Math.min(780, base + proteinSignals * 44 + carbSignals * 42 + fatSignals * 36);
+  const protein = Math.min(62, 18 + proteinSignals * 6);
+  const carbs = Math.min(92, 22 + carbSignals * 9);
+  const fat = Math.min(38, 7 + fatSignals * 5);
+
+  return { calories, protein, carbs, fat };
+}
+
+function MealTotal({
+  label,
+  value,
+  suffix = "",
+  tone,
+}: {
+  label: string;
+  value: number;
+  suffix?: string;
+  tone: "calories" | "protein" | "carbs" | "fat";
+}) {
+  return (
+    <div className={`meal-total ${tone}`}>
+      <strong>
+        {value.toLocaleString()}
+        {suffix}
+      </strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function ProfileDatum({ icon, label, value }: { icon?: React.ReactNode; label: string; value?: string }) {
+  const displayValue = value?.trim() || "Not added";
+
+  return (
+    <div className="info-item profile-detail-item">
+      {icon ? <span className="profile-detail-icon">{icon}</span> : null}
+      <div>
+        <span className="client-meta-label">{label}</span>
+        <strong>{displayValue}</strong>
       </div>
     </div>
   );

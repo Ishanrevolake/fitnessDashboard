@@ -28,6 +28,17 @@ export type ClientMetrics = {
   steps: number[];
 };
 
+export type ClientProfileDetails = {
+  gender?: string;
+  age?: string;
+  dateOfBirth?: string;
+  height?: string;
+  weight?: string;
+  waist?: string;
+  activityLevel?: string;
+  injuries?: string;
+};
+
 export type WorkoutPlan = {
   assignedProgramId: string;
   focus: string;
@@ -106,6 +117,7 @@ export type FitnessClient = {
   daysLeft: number;
   goal: string;
   timezone: string;
+  profile: ClientProfileDetails;
   notes: ClientNote[];
   photos: string[];
   metrics: ClientMetrics;
@@ -119,6 +131,55 @@ export type NewClientInput = {
   email: string;
   phone: string;
   packageId: PackageId;
+};
+
+export type BlogPostStatus = "draft" | "published";
+
+export type BlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  status: BlogPostStatus;
+  category: string;
+  coverImageUrl: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BlogPostInput = {
+  title: string;
+  slug?: string;
+  excerpt: string;
+  content: string;
+  status: BlogPostStatus;
+  category?: string;
+  coverImageUrl?: string;
+};
+
+export type TestimonialStatus = "pending" | "approved";
+
+export type Testimonial = {
+  id: string;
+  clientId: string;
+  name: string;
+  text: string;
+  category: string;
+  rating: number;
+  status: TestimonialStatus;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt: string | null;
+};
+
+export type TestimonialInput = {
+  clientId: string;
+  name: string;
+  text: string;
+  category: string;
+  rating: number;
 };
 
 export type ProgramTemplate = {

@@ -3,6 +3,11 @@ import { createClient as createLocalClient } from "@/lib/client-store";
 import { defaultMetrics, defaultWorkoutPlans, packageOptions } from "@/lib/mock-data";
 import type { ClientMealPlan, FitnessClient, NewClientInput, PackageId, WorkoutPlan } from "@/lib/types";
 
+type ProfileRecord = Record<string, unknown> & {
+  id?: string;
+  user_id?: string;
+};
+
 type PackageSelectionRecord = {
   user_id?: string;
   package_id?: string;
@@ -43,9 +48,23 @@ function getMetadataText(metadata: Record<string, unknown> | undefined, keys: st
   for (const key of keys) {
     const value = metadata?.[key];
     if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
 
   return "";
+}
+
+function getRecordText(record: Record<string, unknown> | undefined, keys: string[]) {
+  return getMetadataText(record, keys);
+}
+
+function getProfileText(user: User, profile: ProfileRecord | undefined, keys: string[]) {
+  return getRecordText(profile, keys) || getMetadataText(user.user_metadata, keys);
+}
+
+function formatMeasurement(value: string, unit: string) {
+  if (!value) return "";
+  return unit && !value.toLowerCase().includes(unit.toLowerCase()) ? `${value} ${unit}` : value;
 }
 
 function getUserRole(user: User) {
@@ -137,6 +156,7 @@ function mapRecordToNote(record: ClientNoteRecord) {
 
 function mapUserToClient(
   user: User,
+  profile?: ProfileRecord,
   packageSelection?: PackageSelectionRecord,
   workoutPlanRecord?: WorkoutPlanRecord,
   mealPlanRecord?: MealPlanRecord,
@@ -158,8 +178,27 @@ function mapUserToClient(
     packageId,
     packageName: packageSelection?.package_title || getMetadataText(user.user_metadata, ["package_title", "packageName"]),
     daysLeft: getDaysLeft(packageSelection),
-    goal: getMetadataText(user.user_metadata, ["goal", "fitness_goal"]) || "No goal added yet.",
-    timezone: getMetadataText(user.user_metadata, ["timezone", "time_zone"]) || "Not set",
+    goal: getProfileText(user, profile, ["goal", "fitness_goal", "primary_goal"]) || "No goal added yet.",
+    timezone: getProfileText(user, profile, ["timezone", "time_zone"]) || "Not set",
+    profile: {
+      gender: getProfileText(user, profile, ["gender", "sex"]),
+      age: getProfileText(user, profile, ["age"]),
+      dateOfBirth: getProfileText(user, profile, ["date_of_birth", "dob", "birthdate"]),
+      height: formatMeasurement(
+        getProfileText(user, profile, ["height", "height_cm", "height_inches", "height_in"]),
+        getProfileText(user, profile, ["height_unit"]) || (getProfileText(user, profile, ["height_cm"]) ? "cm" : ""),
+      ),
+      weight: formatMeasurement(
+        getProfileText(user, profile, ["weight", "weight_kg", "body_weight"]),
+        getProfileText(user, profile, ["weight_unit"]) || (getProfileText(user, profile, ["weight_kg", "body_weight"]) ? "kg" : ""),
+      ),
+      waist: formatMeasurement(
+        getProfileText(user, profile, ["waist", "waist_cm"]),
+        getProfileText(user, profile, ["waist_unit"]) || (getProfileText(user, profile, ["waist_cm"]) ? "cm" : ""),
+      ),
+      activityLevel: getProfileText(user, profile, ["activity_level", "activityLevel", "training_experience", "experience"]),
+      injuries: getProfileText(user, profile, ["injuries", "injury_history", "limitations", "medical_notes"]),
+    },
     notes: notes.map(mapRecordToNote),
     photos: [],
     metrics: defaultMetrics,
@@ -198,11 +237,20 @@ export async function GET() {
   const clientUsers = users.filter((user) => !["admin", "trainer"].includes(getUserRole(user)));
   const userIds = clientUsers.map((user) => user.id);
   const selectionsByUserId = new Map<string, PackageSelectionRecord>();
+  const profilesByUserId = new Map<string, ProfileRecord>();
   const workoutPlansByUserId = new Map<string, WorkoutPlanRecord>();
   const mealPlansByUserId = new Map<string, MealPlanRecord>();
   const notesByUserId = new Map<string, ClientNoteRecord[]>();
 
   if (userIds.length > 0) {
+    const { data: profiles } = await supabase.from("profiles").select("*").in("id", userIds);
+
+    (profiles ?? []).forEach((profile) => {
+      const typedProfile = profile as ProfileRecord;
+      const profileUserId = typedProfile.id || typedProfile.user_id;
+      if (profileUserId) profilesByUserId.set(profileUserId, typedProfile);
+    });
+
     const { data: selections } = await supabase
       .from("package_selections")
       .select("user_id,package_id,package_title,total_price_lkr,created_at")
@@ -254,6 +302,7 @@ export async function GET() {
     clientUsers.map((user) =>
       mapUserToClient(
         user,
+        profilesByUserId.get(user.id),
         selectionsByUserId.get(user.id),
         workoutPlansByUserId.get(user.id),
         mealPlansByUserId.get(user.id),

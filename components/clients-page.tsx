@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { AddClientModal } from "@/components/add-client-modal";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PageHeader } from "@/components/page-header";
-import { TabNavigation } from "@/components/tab-navigation";
-import { Toast } from "@/components/toast";
-import { addClient, getStoredClients } from "@/lib/client-store";
+import { getStoredClients } from "@/lib/client-store";
 import { fetchClients } from "@/lib/api-client";
 import { getPackageLabel, packageOptions } from "@/lib/mock-data";
 import { getStoredPrograms } from "@/lib/program-store";
-import type { ClientStatus, FitnessClient, NewClientInput, PackageId, ProgramTemplate } from "@/lib/types";
+import type { ClientStatus, FitnessClient, PackageId, ProgramTemplate } from "@/lib/types";
 
 type ClientsPageProps = {
   initialStatus?: ClientStatus | "";
@@ -24,8 +21,6 @@ export function ClientsPage({ initialStatus = "" }: ClientsPageProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ClientStatus | "">(initialStatus);
   const [packageId, setPackageId] = useState<PackageId | "">("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -63,20 +58,13 @@ export function ClientsPage({ initialStatus = "" }: ClientsPageProps) {
     });
   }, [clients, packageId, search, status]);
 
-  function handleAddClient(input: NewClientInput) {
-    const result = addClient(input);
-    setClients(result.clients);
-    setToast("Client added successfully.");
-  }
-
   return (
     <DashboardShell>
       <div className="dashboard-container">
-        <PageHeader title="Clients Directory" onAddClient={() => setModalOpen(true)} />
-        <TabNavigation />
+        <PageHeader title="Clients" subtitle={`${filteredClients.length} clients in the current view`} />
 
         <main className="main-content">
-          <section className="search-section">
+          <section className="search-section client-filter-bar">
             <div className="search-control">
               <Search size={20} style={{ color: "var(--text-muted)" }} />
               <input
@@ -110,10 +98,9 @@ export function ClientsPage({ initialStatus = "" }: ClientsPageProps) {
                 </option>
               ))}
             </select>
-            <button id="clientsPageAddClientBtn" className="btn-primary toolbar-button" type="button" onClick={() => setModalOpen(true)}>
-              <Plus size={16} /> New Client
-            </button>
           </section>
+
+          <ClientTable clients={filteredClients} programs={programs} loading={loading} />
 
           <section className="clients-list">
             {loading ? <div className="card empty-state">Loading clients...</div> : null}
@@ -134,10 +121,85 @@ export function ClientsPage({ initialStatus = "" }: ClientsPageProps) {
           </section>
         </main>
       </div>
-
-      <AddClientModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleAddClient} />
-      <Toast message={toast} />
     </DashboardShell>
+  );
+}
+
+function ClientInitials({ client }: { client: FitnessClient }) {
+  const initials = client.name
+    .split(" ")
+    .map((part) => part.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return <div className="client-table-avatar">{initials}</div>;
+}
+
+function getClientProgress(client: FitnessClient) {
+  const packageDays = packageOptions.find((option) => option.id === client.packageId)?.durationDays ?? 84;
+  const completedDays = Math.max(0, packageDays - client.daysLeft);
+  const percent = packageDays > 0 ? Math.min(100, Math.round((completedDays / packageDays) * 100)) : 0;
+  const week = Math.max(1, Math.ceil(completedDays / 7));
+  const totalWeeks = Math.max(1, Math.ceil(packageDays / 7));
+
+  return { percent, week, totalWeeks };
+}
+
+function ClientTable({ clients, programs, loading }: { clients: FitnessClient[]; programs: ProgramTemplate[]; loading: boolean }) {
+  return (
+    <section className="card clients-table-card">
+      <div className="clients-table-title">All Clients ({loading ? "-" : clients.length})</div>
+      <div className="clients-table">
+        <div className="clients-table-row clients-table-head">
+          <span>Client</span>
+          <span>Package</span>
+          <span>Progress</span>
+          <span>Last Active</span>
+          <span>Status</span>
+          <span>Action</span>
+        </div>
+
+        {clients.map((client) => {
+          const inactive = client.status === "inactive";
+          const progress = getClientProgress(client);
+          const statusLabel = inactive ? "Inactive" : client.daysLeft <= 7 ? "Ending Soon" : "Active";
+          const packageLabel = client.packageName ?? getPackageLabel(client.packageId);
+
+          return (
+            <div className="clients-table-row" key={client.id}>
+              <div className="clients-table-client">
+                <ClientInitials client={client} />
+                <div>
+                  <strong>{client.name}</strong>
+                  <span>{client.email}</span>
+                </div>
+              </div>
+              <strong>{packageLabel}</strong>
+              <div className="client-progress-cell">
+                {inactive ? (
+                  <span className="text-muted">Completed</span>
+                ) : (
+                  <>
+                    <div className="client-progress-track">
+                      <div className={progress.percent < 40 ? "client-progress-fill low" : "client-progress-fill"} style={{ width: `${progress.percent}%` }} />
+                    </div>
+                    <span>
+                      Wk {progress.week}/{progress.totalWeeks}
+                    </span>
+                  </>
+                )}
+              </div>
+              <span>{inactive ? "14 days ago" : client.daysLeft <= 7 ? "Yesterday" : "Today"}</span>
+              <span className={`client-status-chip ${inactive ? "inactive" : client.daysLeft <= 7 ? "ending" : "active"}`}>{statusLabel}</span>
+              <Link className="client-table-action" href={`/client-profile?clientId=${client.id}`}>
+                View
+              </Link>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

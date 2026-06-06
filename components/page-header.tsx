@@ -30,9 +30,11 @@ export function PageHeader({ title, subtitle, onAddClient, children }: PageHeade
             <button className="icon-btn" type="button" aria-label="Notifications">
               <Bell size={20} />
             </button>
-            <button className="icon-btn" type="button" aria-label="Add client" onClick={onAddClient}>
-              <PlusCircle size={20} />
-            </button>
+            {onAddClient ? (
+              <button className="icon-btn" type="button" aria-label="Add client" onClick={onAddClient}>
+                <PlusCircle size={20} />
+              </button>
+            ) : null}
           </div>
         )}
       </div>

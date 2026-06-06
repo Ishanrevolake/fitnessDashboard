@@ -9,7 +9,7 @@ export type AuthUser = {
   role: UserRole;
 };
 
-export type UserRole = "admin" | "trainer" | "client";
+export type UserRole = "admin" | "trainer" | "coach" | "client";
 
 export type SignUpInput = {
   name: string;
@@ -19,8 +19,9 @@ export type SignUpInput = {
 };
 
 function normalizeRole(value: unknown): UserRole {
-  if (value === "admin" || value === "trainer" || value === "client") return value;
-  if (value === "user" || value === "normal") return "client";
+  const role = typeof value === "string" ? value.trim().toLowerCase() : value;
+  if (role === "admin" || role === "trainer" || role === "coach" || role === "client") return role;
+  if (role === "user" || role === "normal") return "client";
   return "client";
 }
 
@@ -30,10 +31,10 @@ function getStringMetadata(metadata: Record<string, unknown> | undefined, key: s
 }
 
 export function hasTrainerAccess(role: UserRole) {
-  return role === "admin" || role === "trainer";
+  return role === "admin" || role === "trainer" || role === "coach";
 }
 
-export function mapSupabaseUser(user: User): AuthUser {
+export function mapSupabaseUser(user: User, roleOverride?: unknown): AuthUser {
   const email = user.email ?? "";
   const appRole = user.app_metadata?.role ?? user.app_metadata?.user_role;
   const userRole = user.user_metadata?.role ?? user.user_metadata?.user_role;
@@ -46,8 +47,17 @@ export function mapSupabaseUser(user: User): AuthUser {
     name,
     email,
     businessName,
-    role: normalizeRole(appRole ?? userRole),
+    role: normalizeRole(roleOverride ?? appRole ?? userRole),
   };
+}
+
+async function getProfileRole(userId: string) {
+  const { data } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  return data?.role;
+}
+
+export async function mapSupabaseUserWithProfile(user: User) {
+  return mapSupabaseUser(user, await getProfileRole(user.id));
 }
 
 export async function getCurrentUser() {
@@ -59,7 +69,7 @@ export async function getCurrentUser() {
   } = await supabase.auth.getUser();
 
   if (error || !user) return null;
-  return mapSupabaseUser(user);
+  return mapSupabaseUserWithProfile(user);
 }
 
 export async function signInUser(email: string, password: string, remember = true) {
@@ -82,7 +92,7 @@ export async function signInUser(email: string, password: string, remember = tru
     throw new Error("Unable to sign in. Please try again.");
   }
 
-  return mapSupabaseUser(data.user);
+  return mapSupabaseUserWithProfile(data.user);
 }
 
 export async function signUpUser(input: SignUpInput, remember = true) {
