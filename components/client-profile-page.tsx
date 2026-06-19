@@ -5,6 +5,7 @@ import {
   Activity,
   CalendarDays,
   Camera,
+  ChevronDown,
   ChevronLeft,
   Dumbbell,
   Edit3,
@@ -19,6 +20,7 @@ import {
   PlusCircle,
   Ruler,
   Scale,
+  Search,
   Star,
   Trash2,
   Utensils,
@@ -407,17 +409,33 @@ export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
                           </div>
                           {day.exercises.length ? (
                             <div className="assigned-exercise-list">
-                              {day.exercises.map((exercise) => (
+                              {day.exercises.map((exercise, exerciseIndex) => (
                                 <div className="assigned-exercise-row" key={exercise.id}>
-                                  <div>
-                                    <strong>{exercise.name}</strong>
+                                  <div className="assigned-exercise-main">
+                                    <span className="assigned-exercise-number">{exerciseIndex + 1}</span>
+                                    <div>
+                                      <strong>{exercise.name}</strong>
+                                      {exercise.notes ? <p>{exercise.notes}</p> : null}
+                                    </div>
+                                  </div>
+                                  <div className="assigned-exercise-prescription" aria-label={`${exercise.name} prescription`}>
                                     <span>
-                                      {exercise.sets} sets x {exercise.reps} reps
-                                      {exercise.rest ? ` - ${exercise.rest} rest` : ""}
-                                      {exercise.tempo ? ` - ${exercise.tempo} tempo` : ""}
+                                      <small>Sets</small>
+                                      {exercise.sets || "-"}
+                                    </span>
+                                    <span>
+                                      <small>Reps</small>
+                                      {exercise.reps || "-"}
+                                    </span>
+                                    <span>
+                                      <small>Rest</small>
+                                      {exercise.rest || "-"}
+                                    </span>
+                                    <span>
+                                      <small>Tempo</small>
+                                      {exercise.tempo || "-"}
                                     </span>
                                   </div>
-                                  {exercise.notes ? <p>{exercise.notes}</p> : null}
                                 </div>
                               ))}
                             </div>
@@ -698,6 +716,17 @@ function WorkoutPlanModal({
   const [days, setDays] = useState<WorkoutDay[]>(() => getEditableDays(client.workoutPlan));
   const [selectedDayId, setSelectedDayId] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseLibrary[0]?.id ?? "");
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
+  const filteredExerciseOptions = useMemo(() => {
+    const query = exerciseSearch.trim().toLowerCase();
+    if (!query) return exerciseLibrary;
+
+    return exerciseLibrary.filter((exercise) =>
+      [exercise.name, exercise.category, exercise.equipment].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [exerciseSearch]);
+  const selectedExercise = exerciseLibrary.find((exercise) => exercise.id === selectedExerciseId);
 
   useEffect(() => {
     if (!open) return;
@@ -709,7 +738,16 @@ function WorkoutPlanModal({
     setDays(nextDays);
     setSelectedDayId(nextDays[0]?.id ?? "");
     setSelectedExerciseId(exerciseLibrary[0]?.id ?? "");
+    setExerciseSearch("");
+    setExercisePickerOpen(false);
   }, [client, open]);
+
+  useEffect(() => {
+    if (!filteredExerciseOptions.length) return;
+    if (filteredExerciseOptions.some((exercise) => exercise.id === selectedExerciseId)) return;
+
+    setSelectedExerciseId(filteredExerciseOptions[0].id);
+  }, [filteredExerciseOptions, selectedExerciseId]);
 
   function updateDay(dayId: string, field: "day" | "title", value: string) {
     setDays((current) => current.map((day) => (day.id === dayId ? { ...day, [field]: value } : day)));
@@ -851,14 +889,58 @@ function WorkoutPlanModal({
                   </option>
                 ))}
               </select>
-              <select className="modern-select exercise-select" value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)}>
-                {exerciseLibrary.map((exercise) => (
-                  <option key={exercise.id} value={exercise.id}>
-                    {exercise.name}
-                  </option>
-                ))}
-              </select>
-              <button className="btn-primary toolbar-button" type="button" onClick={addExerciseToDay}>
+              <div className="exercise-combobox">
+                <button
+                  className="exercise-combobox-trigger"
+                  type="button"
+                  onClick={() => setExercisePickerOpen((current) => !current)}
+                  aria-expanded={exercisePickerOpen}
+                  aria-haspopup="listbox"
+                >
+                  <span>{selectedExercise?.name ?? "Select exercise"}</span>
+                  <ChevronDown size={16} />
+                </button>
+                {exercisePickerOpen ? (
+                  <div className="exercise-combobox-menu">
+                    <label className="exercise-combobox-search" htmlFor="exerciseSearch">
+                      <Search size={16} />
+                      <input
+                        id="exerciseSearch"
+                        value={exerciseSearch}
+                        onChange={(event) => setExerciseSearch(event.target.value)}
+                        placeholder="Search exercise..."
+                        autoFocus
+                      />
+                    </label>
+                    <div className="exercise-combobox-options" role="listbox">
+                      {filteredExerciseOptions.length ? (
+                        filteredExerciseOptions.map((exercise) => (
+                          <button
+                            className={`exercise-combobox-option ${exercise.id === selectedExerciseId ? "active" : ""}`}
+                            key={exercise.id}
+                            type="button"
+                            role="option"
+                            aria-selected={exercise.id === selectedExerciseId}
+                            onClick={() => {
+                              setSelectedExerciseId(exercise.id);
+                              setExercisePickerOpen(false);
+                              setExerciseSearch("");
+                            }}
+                          >
+                            <span>{exercise.name}</span>
+                            <small>
+                              {exercise.category} - {exercise.equipment}
+                            </small>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="exercise-combobox-empty">No exercises found</div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <button className="btn-primary toolbar-button" type="button" onClick={addExerciseToDay} disabled={!selectedExercise}>
                 <Plus size={14} /> Add Exercise
               </button>
             </div>
@@ -893,29 +975,32 @@ function WorkoutPlanModal({
                             </button>
                           </div>
                           <div className="prescription-grid">
-                            <label>
-                              Sets
+                            <label className="prescription-field">
+                              <span>Sets</span>
                               <input value={exercise.sets} onChange={(event) => updateExercise(day.id, exercise.id, "sets", event.target.value)} />
                             </label>
-                            <label>
-                              Reps
+                            <label className="prescription-field">
+                              <span>Reps</span>
                               <input value={exercise.reps} onChange={(event) => updateExercise(day.id, exercise.id, "reps", event.target.value)} />
                             </label>
-                            <label>
-                              Rest
+                            <label className="prescription-field">
+                              <span>Rest</span>
                               <input value={exercise.rest} onChange={(event) => updateExercise(day.id, exercise.id, "rest", event.target.value)} />
                             </label>
-                            <label>
-                              Tempo
+                            <label className="prescription-field">
+                              <span>Tempo</span>
                               <input value={exercise.tempo} onChange={(event) => updateExercise(day.id, exercise.id, "tempo", event.target.value)} />
                             </label>
                           </div>
-                          <textarea
-                            rows={2}
-                            value={exercise.notes}
-                            onChange={(event) => updateExercise(day.id, exercise.id, "notes", event.target.value)}
-                            placeholder="Coaching notes, load targets, substitutions..."
-                          />
+                          <label className="prescription-notes">
+                            <span>Coach notes</span>
+                            <textarea
+                              rows={2}
+                              value={exercise.notes}
+                              onChange={(event) => updateExercise(day.id, exercise.id, "notes", event.target.value)}
+                              placeholder="Coaching notes, load targets, substitutions..."
+                            />
+                          </label>
                         </div>
                       ))}
                     </div>

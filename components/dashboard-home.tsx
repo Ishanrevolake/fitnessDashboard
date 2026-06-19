@@ -80,38 +80,38 @@ export function DashboardHome() {
 
         <main className="main-content">
           <section className="admin-stat-grid dashboard-overview-strip">
-            <article className="card admin-stat-card">
+            <Link className="card admin-stat-card admin-stat-link" href="/clients?status=active" aria-label="View active clients">
               <div className="metric-header">
                 <h4>Active clients</h4>
                 <Users size={17} />
               </div>
               <div className="metric-val">{clientsLoading ? "-" : activeClients.length}</div>
               <span className="badge-tag">{clients.length} total clients</span>
-            </article>
-            <article className="card admin-stat-card">
+            </Link>
+            <Link className="card admin-stat-card admin-stat-link" href="/exercises" aria-label="View assigned exercises">
               <div className="metric-header">
                 <h4>Assigned exercises</h4>
                 <Dumbbell size={17} />
               </div>
               <div className="metric-val">{clientsLoading ? "-" : assignedExerciseCount}</div>
               <span className="badge-tag">{clientsWithWorkoutPlans} clients with plans</span>
-            </article>
-            <article className="card admin-stat-card">
+            </Link>
+            <Link className="card admin-stat-card admin-stat-link" href="/meal-plans" aria-label="View assigned meals">
               <div className="metric-header">
                 <h4>Assigned meals</h4>
                 <Utensils size={17} />
               </div>
               <div className="metric-val">{clientsLoading ? "-" : assignedMealCount}</div>
               <span className="badge-tag">{clientsWithMealPlans} clients with meals</span>
-            </article>
-            <article className="card admin-stat-card">
+            </Link>
+            <Link className="card admin-stat-card admin-stat-link" href="/clients" aria-label="View clients with trainer notes">
               <div className="metric-header">
                 <h4>Trainer notes</h4>
                 <MessageCircle size={17} />
               </div>
               <div className="metric-val">{clientsLoading ? "-" : trainerNoteCount}</div>
               <span className="badge-tag">Visible to clients</span>
-            </article>
+            </Link>
           </section>
 
           <div className="dashboard-grid">

@@ -2194,14 +2194,14 @@ body {
 
 .assigned-workout-days {
     display: grid;
-    gap: 12px;
+    gap: 16px;
 }
 
 .assigned-workout-day {
     border: 1px solid var(--border-light);
-    border-radius: 8px;
-    padding: 12px;
-    background: var(--bg-light);
+    border-radius: 10px;
+    padding: 14px;
+    background: #0F1013;
 }
 
 .assigned-day-header {
@@ -2209,7 +2209,9 @@ body {
     justify-content: space-between;
     gap: 12px;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .assigned-day-header strong {
@@ -2219,48 +2221,96 @@ body {
 
 .assigned-day-header span {
     color: var(--text-main);
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
 }
 
 .assigned-exercise-list {
     display: grid;
-    gap: 8px;
+    gap: 10px;
 }
 
 .assigned-exercise-row {
     display: grid;
-    gap: 4px;
-    padding: 10px;
-    border-radius: 8px;
-    background: white;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: #15161A;
 }
 
-.assigned-exercise-row div {
+.assigned-exercise-main {
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+}
+
+.assigned-exercise-number {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(var(--accent-rgb), 0.32);
+    border-radius: 8px;
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--accent-red);
+    font-size: 12px;
+    font-weight: 800;
 }
 
 .assigned-exercise-row strong {
+    display: block;
     color: var(--text-main);
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.35;
 }
 
-.assigned-exercise-row span,
 .assigned-exercise-row p {
     color: var(--text-muted);
     font-size: 12px;
+    line-height: 1.45;
+    margin-top: 5px;
+}
+
+.assigned-exercise-prescription {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(58px, 1fr));
+    gap: 8px;
+}
+
+.assigned-exercise-prescription span {
+    min-width: 58px;
+    display: grid;
+    gap: 3px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: #0A0A0B;
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.assigned-exercise-prescription small {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .workout-builder {
     display: grid;
-    gap: 16px;
-    padding: 14px;
+    gap: 18px;
+    padding: 18px;
     border: 1px solid var(--border-light);
-    border-radius: 8px;
-    background: #F8FAFC;
+    border-radius: 10px;
+    background: #0F1013;
 }
 
 .builder-header,
@@ -2274,19 +2324,129 @@ body {
 
 .builder-header {
     justify-content: space-between;
+    padding-bottom: 4px;
 }
 
 .builder-header label {
     display: block;
     margin-bottom: 4px;
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 800;
 }
 
 .exercise-add-row {
     align-items: stretch;
+    padding: 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: #15161A;
 }
 
-.exercise-select {
+.exercise-combobox {
+    position: relative;
     flex: 1;
+    min-width: 260px;
+}
+
+.exercise-combobox-trigger {
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 14px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: #0A0A0B;
+    color: var(--text-main);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.exercise-combobox-trigger span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.exercise-combobox-trigger:focus-visible,
+.exercise-combobox-trigger[aria-expanded="true"] {
+    border-color: rgba(var(--accent-rgb), 0.65);
+    outline: none;
+}
+
+.exercise-combobox-menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 8px);
+    right: 0;
+    left: 0;
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: #0A0A0B;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.36);
+}
+
+.exercise-combobox-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    color: var(--text-muted);
+}
+
+.exercise-combobox-search input {
+    width: 100%;
+    min-height: 38px;
+    border: 0;
+    background: transparent;
+    color: var(--text-main);
+    outline: none;
+}
+
+.exercise-combobox-options {
+    max-height: 240px;
+    overflow-y: auto;
+    display: grid;
+    gap: 4px;
+}
+
+.exercise-combobox-option {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+    text-align: left;
+}
+
+.exercise-combobox-option:hover,
+.exercise-combobox-option.active {
+    border-color: rgba(var(--accent-rgb), 0.32);
+    background: rgba(var(--accent-rgb), 0.08);
+}
+
+.exercise-combobox-option small,
+.exercise-combobox-empty {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.exercise-combobox-empty {
+    padding: 12px 10px;
 }
 
 .workout-day-editor-list,
@@ -2296,10 +2456,10 @@ body {
 }
 
 .workout-day-editor {
-    padding: 14px;
-    border-radius: 8px;
+    padding: 16px;
+    border-radius: 10px;
     border: 1px solid var(--border-light);
-    background: white;
+    background: #111114;
 }
 
 .day-editor-header {
@@ -2313,39 +2473,78 @@ body {
 
 .exercise-prescription {
     display: grid;
-    gap: 10px;
-    padding: 12px;
-    border-radius: 8px;
-    background: var(--bg-light);
+    gap: 14px;
+    padding: 16px;
+    border-radius: 10px;
+    background: #15161A;
     border: 1px solid var(--border-light);
 }
 
 .prescription-title {
     justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .prescription-title strong {
     color: var(--text-main);
-    font-size: 14px;
+    font-size: 15px;
+    line-height: 1.35;
 }
 
 .prescription-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(90px, 1fr));
-    gap: 10px;
+    gap: 12px;
 }
 
-.prescription-grid label {
+.prescription-field,
+.prescription-notes {
+    display: grid;
+    gap: 6px;
+}
+
+.prescription-field span,
+.prescription-notes span {
     color: var(--text-muted);
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.prescription-field input,
+.prescription-notes textarea {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    background: #0A0A0B;
+    color: var(--text-main);
+    font-size: 14px;
+}
+
+.prescription-field input {
+    padding: 0 12px;
+}
+
+.prescription-notes textarea {
+    min-height: 74px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
+.prescription-field input:focus,
+.prescription-notes textarea:focus {
+    border-color: rgba(var(--accent-rgb), 0.65);
+    outline: none;
 }
 
 .empty-day {
     padding: 14px;
     border-radius: 8px;
     color: var(--text-muted);
-    background: var(--bg-light);
+    background: #15161A;
     font-size: 13px;
 }
 
@@ -2689,6 +2888,24 @@ body {
     .assigned-exercise-row div {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .assigned-exercise-row {
+        grid-template-columns: 1fr;
+    }
+
+    .assigned-exercise-main {
+        flex-direction: row;
+    }
+
+    .assigned-exercise-prescription {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .exercise-add-row > *,
+    .exercise-combobox {
+        width: 100%;
+        min-width: 0;
     }
 
     .prescription-grid,
@@ -3785,6 +4002,21 @@ body {
     align-content: end;
     gap: 8px;
     padding: 24px;
+}
+
+.admin-stat-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.admin-stat-link:hover,
+.admin-stat-link:focus-visible {
+    border-color: rgba(var(--accent-rgb), 0.45);
+    background: rgba(var(--accent-rgb), 0.04);
+    transform: translateY(-2px);
+    outline: none;
 }
 
 .admin-stat-card .metric-header {
