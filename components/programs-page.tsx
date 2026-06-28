@@ -1,106 +1,136 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { CreateProgramModal } from "@/components/create-program-modal";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PageHeader } from "@/components/page-header";
-import { Toast } from "@/components/toast";
-import { addStoredProgram, getStoredPrograms } from "@/lib/program-store";
-import type { ProgramTemplate } from "@/lib/types";
+import { fetchClients } from "@/lib/api-client";
+import { getStoredClients } from "@/lib/client-store";
+import { getPackageLabel, packageOptions } from "@/lib/mock-data";
+import type { FitnessClient } from "@/lib/types";
+
+type PackageCardItem = {
+  id: string;
+  label: string;
+  durationDays: number;
+  clientCount: number;
+};
 
 export function ProgramsPage() {
-  const [programs, setPrograms] = useState<ProgramTemplate[]>([]);
+  const [clients, setClients] = useState<FitnessClient[]>([]);
   const [search, setSearch] = useState("");
-  const [duration, setDuration] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    setPrograms(getStoredPrograms());
+    fetchClients()
+      .then(setClients)
+      .catch((error) => {
+        setClients(getStoredClients());
+        setLoadError(error instanceof Error ? error.message : "Unable to load packages from Supabase.");
+      });
   }, []);
 
-  const filteredPrograms = useMemo(() => {
-    return programs.filter((program) => {
-      const matchesSearch =
-        !search.trim() ||
-        [program.name, program.description, program.intensity].some((value) => value.toLowerCase().includes(search.toLowerCase().trim()));
-      const matchesDuration = !duration || program.durationWeeks === Number(duration);
+  const packages = useMemo(() => {
+    const items = new Map<string, PackageCardItem>();
 
-      return matchesSearch && matchesDuration;
+    packageOptions.forEach((option) => {
+      items.set(getPackageKey(option.label), {
+        id: option.id,
+        label: option.label,
+        durationDays: option.durationDays,
+        clientCount: 0,
+      });
     });
-  }, [duration, programs, search]);
 
-  function addProgram(program: ProgramTemplate) {
-    setPrograms(addStoredProgram(program));
-    setToast("Program created successfully.");
-  }
+    clients.forEach((client) => {
+      const label = getClientPackageLabel(client);
+      const key = getPackageKey(label);
+      const existing = items.get(key);
+
+      items.set(key, {
+        id: existing?.id ?? key,
+        label,
+        durationDays: existing?.durationDays ?? getPackageDuration(client),
+        clientCount: (existing?.clientCount ?? 0) + 1,
+      });
+    });
+
+    return Array.from(items.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [clients]);
+
+  const filteredPackages = useMemo(() => {
+    const normalizedSearch = search.toLowerCase().trim();
+
+    return packages.filter((item) => {
+      return !normalizedSearch || item.label.toLowerCase().includes(normalizedSearch);
+    });
+  }, [packages, search]);
 
   return (
     <DashboardShell>
-      <PageHeader title="Program Templates" subtitle="Create and manage reusable training programs">
-        <button className="btn-primary toolbar-button" type="button" onClick={() => setModalOpen(true)}>
-          <Plus size={16} /> Create Program
-        </button>
-      </PageHeader>
+      <PageHeader title="Packages" subtitle="View packages assigned to clients" />
 
-      <main className="main-content">
-        <section className="search-section">
+      <main className="main-content packages-page-content">
+        <section className="search-section packages-search-section">
           <div className="search-control">
             <Search size={20} style={{ color: "var(--text-muted)" }} />
-            <input placeholder="Search programs..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            <input placeholder="Search packages..." value={search} onChange={(event) => setSearch(event.target.value)} />
           </div>
-          <select className="modern-select" value={duration} onChange={(event) => setDuration(event.target.value)}>
-            <option value="">All Durations</option>
-            <option value="4">4 Weeks</option>
-            <option value="8">8 Weeks</option>
-            <option value="10">10 Weeks</option>
-            <option value="12">12 Weeks</option>
-          </select>
         </section>
 
-        <section className="program-grid">
-          {filteredPrograms.map((program) => (
-            <ProgramCard key={program.id} program={program} />
+        {loadError ? <div className="auth-error">{loadError}</div> : null}
+
+        <section className="package-grid">
+          {filteredPackages.map((item) => (
+            <PackageCard key={item.id} item={item} />
           ))}
         </section>
       </main>
-
-      <CreateProgramModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={addProgram} />
-      <Toast message={toast} />
     </DashboardShell>
   );
 }
 
-function ProgramCard({ program }: { program: ProgramTemplate }) {
-  const badgeStyle =
-    program.intensity === "Advanced"
-      ? { background: "rgba(230,57,70,0.1)", color: "var(--accent-red)" }
-      : program.intensity === "Intermediate"
-        ? { background: "rgba(249, 115, 22, 0.12)", color: "var(--accent-orange)" }
-        : { background: "rgba(37, 99, 235, 0.1)", color: "#2563EB" };
+function PackageCard({ item }: { item: PackageCardItem }) {
+  const duration = formatDuration(item.durationDays);
 
   return (
-    <article className="card program-card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, gap: 16 }}>
+    <article className="card package-card">
+      <div className="package-card-header">
         <div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-main)", marginBottom: 4 }}>{program.name}</h3>
-          <span className="badge-tag" style={badgeStyle}>
-            {program.intensity}
+          <h3>{item.label}</h3>
+          <span className="badge-tag package-client-count">
+            {item.clientCount} {item.clientCount === 1 ? "client" : "clients"}
           </span>
         </div>
         <div className="duration-chip">
-          <div style={{ fontSize: 16, fontWeight: 700 }}>{program.durationWeeks}</div>
-          <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>Weeks</div>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>{item.durationDays}</div>
+          <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>Days</div>
         </div>
       </div>
-      <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 20, lineHeight: 1.5 }}>{program.description}</p>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-light)", paddingTop: 16 }}>
-        <div style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 600 }}>{program.workoutsPerWeek} Workouts / Week</div>
-        <button className="btn-secondary inline-button" type="button">
-          Edit Program
-        </button>
+      <div className="package-card-body">
+        <span>Package duration</span>
+        <strong>{duration}</strong>
+      </div>
+      <div className="package-card-footer">
+        <span>{item.clientCount} active assignment{item.clientCount === 1 ? "" : "s"}</span>
       </div>
     </article>
   );
+}
+
+function getClientPackageLabel(client: FitnessClient) {
+  return client.packageName?.trim() || getPackageLabel(client.packageId);
+}
+
+function getPackageKey(label: string) {
+  return label.trim().toLowerCase();
+}
+
+function getPackageDuration(client: FitnessClient) {
+  return packageOptions.find((option) => option.id === client.packageId)?.durationDays ?? client.daysLeft;
+}
+
+function formatDuration(days: number) {
+  if (days % 7 === 0) return `${days / 7} Weeks`;
+  return `${days} Days`;
 }

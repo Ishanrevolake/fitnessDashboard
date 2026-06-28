@@ -42,13 +42,20 @@ import type { AssignedExercise, AssignedMeal, ClientMealPlan, FitnessClient, Mea
 
 type ClientProfilePageProps = {
   clientId?: string;
+  initialTab?: string;
 };
 
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
+function getProfileTabFromParam(value?: string) {
+  if (value === "meal") return "Meal Plan";
+  if (value === "workout") return "Workout Plan";
+  return "Overview";
+}
+
+export function ClientProfilePage({ clientId, initialTab }: ClientProfilePageProps) {
   const [clients, setClients] = useState<FitnessClient[]>([]);
   const [programs, setPrograms] = useState<ProgramTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +66,7 @@ export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
   const [noteBody, setNoteBody] = useState("");
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("Overview");
+  const [activeTab, setActiveTab] = useState(() => getProfileTabFromParam(initialTab));
 
   useEffect(() => {
     setPrograms(getStoredPrograms());
@@ -74,6 +81,10 @@ export function ClientProfilePage({ clientId }: ClientProfilePageProps) {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setActiveTab(getProfileTabFromParam(initialTab));
+  }, [initialTab]);
 
   const client = useMemo(() => {
     if (clientId) return clients.find((item) => item.id === clientId);

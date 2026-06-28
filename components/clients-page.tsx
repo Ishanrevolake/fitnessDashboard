@@ -9,18 +9,22 @@ import { getStoredClients } from "@/lib/client-store";
 import { fetchClients } from "@/lib/api-client";
 import { getPackageLabel, packageOptions } from "@/lib/mock-data";
 import { getStoredPrograms } from "@/lib/program-store";
-import type { ClientStatus, FitnessClient, PackageId, ProgramTemplate } from "@/lib/types";
+import type { ClientStatus, FitnessClient, ProgramTemplate } from "@/lib/types";
 
 type ClientsPageProps = {
   initialStatus?: ClientStatus | "";
+  initialRenewal?: RenewalFilter;
 };
 
-export function ClientsPage({ initialStatus = "" }: ClientsPageProps) {
+type RenewalFilter = "" | "ending-soon";
+
+export function ClientsPage({ initialStatus = "", initialRenewal = "" }: ClientsPageProps) {
   const [clients, setClients] = useState<FitnessClient[]>([]);
   const [programs, setPrograms] = useState<ProgramTemplate[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ClientStatus | "">(initialStatus);
-  const [packageId, setPackageId] = useState<PackageId | "">("");
+  const [renewal, setRenewal] = useState<RenewalFilter>(initialRenewal);
+  const [packageFilter, setPackageFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -42,21 +46,44 @@ export function ClientsPage({ initialStatus = "" }: ClientsPageProps) {
     setStatus(initialStatus);
   }, [initialStatus]);
 
+  useEffect(() => {
+    setRenewal(initialRenewal);
+  }, [initialRenewal]);
+
+  const packageFilterOptions = useMemo(() => {
+    const options = new Map<string, string>();
+
+    packageOptions.forEach((option) => {
+      options.set(getPackageFilterKey(option.label), option.label);
+    });
+
+    clients.forEach((client) => {
+      const label = getClientPackageLabel(client);
+      options.set(getPackageFilterKey(label), label);
+    });
+
+    return Array.from(options, ([value, label]) => ({ value, label })).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
+  }, [clients]);
+
   const filteredClients = useMemo(() => {
     const normalizedSearch = search.toLowerCase().trim();
 
     return clients.filter((client) => {
+      const packageLabel = getClientPackageLabel(client);
       const matchesSearch =
         !normalizedSearch ||
-        [client.name, client.email, client.goal, client.packageName ?? getPackageLabel(client.packageId)].some((value) =>
+        [client.name, client.email, client.goal, packageLabel].some((value) =>
           value.toLowerCase().includes(normalizedSearch),
         );
       const matchesStatus = !status || client.status === status;
-      const matchesPackage = !packageId || client.packageId === packageId;
+      const matchesPackage = !packageFilter || getPackageFilterKey(packageLabel) === packageFilter;
+      const matchesRenewal = !renewal || (client.status === "active" && client.daysLeft <= 7);
 
-      return matchesSearch && matchesStatus && matchesPackage;
+      return matchesSearch && matchesStatus && matchesPackage && matchesRenewal;
     });
-  }, [clients, packageId, search, status]);
+  }, [clients, packageFilter, renewal, search, status]);
 
   return (
     <DashboardShell>
@@ -88,15 +115,24 @@ export function ClientsPage({ initialStatus = "" }: ClientsPageProps) {
             <select
               id="clientPackageFilter"
               className="modern-select"
-              value={packageId}
-              onChange={(event) => setPackageId(event.target.value as PackageId | "")}
+              value={packageFilter}
+              onChange={(event) => setPackageFilter(event.target.value)}
             >
               <option value="">All Packages</option>
-              {packageOptions.map((option) => (
-                <option key={option.id} value={option.id}>
+              {packageFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
+            </select>
+            <select
+              id="clientRenewalFilter"
+              className="modern-select"
+              value={renewal}
+              onChange={(event) => setRenewal(event.target.value as RenewalFilter)}
+            >
+              <option value="">All Renewals</option>
+              <option value="ending-soon">Ending in 7 Days</option>
             </select>
           </section>
 
@@ -144,6 +180,14 @@ function getClientProgress(client: FitnessClient) {
   const totalWeeks = Math.max(1, Math.ceil(packageDays / 7));
 
   return { percent, week, totalWeeks };
+}
+
+function getClientPackageLabel(client: FitnessClient) {
+  return client.packageName?.trim() || getPackageLabel(client.packageId);
+}
+
+function getPackageFilterKey(label: string) {
+  return label.trim().toLowerCase();
 }
 
 function ClientTable({ clients, programs, loading }: { clients: FitnessClient[]; programs: ProgramTemplate[]; loading: boolean }) {

@@ -17,7 +17,6 @@ import {
   PenLine,
   Phone,
   Settings,
-  Share2,
   SlidersHorizontal,
   SquareLibrary,
   Star,
@@ -81,7 +80,6 @@ const navGroups: NavGroup[] = [
       { label: "Blog Posts", href: "/blog-posts", icon: PenLine },
       { label: "Testimonials", href: "/testimonials", icon: SquareLibrary },
       { label: "Recipe Book", href: "/recipes", icon: Utensils },
-      { label: "Social Media", href: "/social", icon: Share2 },
     ],
   },
   {

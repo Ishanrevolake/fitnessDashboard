@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   BarChart3,
   Bell,
@@ -282,10 +283,10 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
           <main className="main-content">
             {error ? <div className="auth-error">{error}</div> : null}
             <section className="admin-stat-grid">
-              <AnalyticsStat label="Total clients" value={loading ? "-" : String(clients.length)} note={`${analytics.activeClients.length} active`} icon={Users} />
-              <AnalyticsStat label="Assigned exercises" value={loading ? "-" : String(analytics.assignedExercises)} note={`${analytics.clientsWithWorkouts} clients with workouts`} icon={Dumbbell} />
-              <AnalyticsStat label="Assigned meals" value={loading ? "-" : String(analytics.assignedMeals)} note={`${analytics.clientsWithMeals} clients with meals`} icon={Salad} />
-              <AnalyticsStat label="Trainer notes" value={loading ? "-" : String(analytics.totalNotes)} note={`${analytics.renewalWatch} renewals in 7 days`} icon={MessageCircle} />
+              <AnalyticsStat label="Total clients" value={loading ? "-" : String(clients.length)} note={`${analytics.activeClients.length} active`} icon={Users} href="/clients" />
+              <AnalyticsStat label="Assigned exercises" value={loading ? "-" : String(analytics.assignedExercises)} note={`${analytics.clientsWithWorkouts} clients with workouts`} icon={Dumbbell} href="/exercises" />
+              <AnalyticsStat label="Assigned meals" value={loading ? "-" : String(analytics.assignedMeals)} note={`${analytics.clientsWithMeals} clients with meals`} icon={Salad} href="/meal-plans" />
+              <AnalyticsStat label="Trainer notes" value={loading ? "-" : String(analytics.totalNotes)} note={`${analytics.renewalWatch} renewals in 7 days`} icon={MessageCircle} href="/clients?status=active&renewal=ending-soon" />
             </section>
 
             <section className="admin-content-grid">
@@ -300,7 +301,7 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
                       const mealCount = normalizeClientMealPlan(client.mealPlan).days.reduce((total, day) => total + day.meals.length, 0);
 
                       return (
-                        <div className="admin-table-row" key={client.id}>
+                        <div className="admin-table-row analytics-coverage-row" key={client.id}>
                           <div>
                             <strong>{client.name}</strong>
                             <span>{client.packageName || client.packageId}</span>
@@ -309,6 +310,17 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
                           <span className="text-muted">
                             {exerciseCount} exercises - {mealCount} meals
                           </span>
+                          <div className="row-action-group">
+                            <Link className="text-link row-action-link" href={`/client-profile?clientId=${client.id}`}>
+                              Profile
+                            </Link>
+                            <Link className="text-link row-action-link" href={`/client-profile?clientId=${client.id}&tab=workout`}>
+                              Workout
+                            </Link>
+                            <Link className="text-link row-action-link" href={`/client-profile?clientId=${client.id}&tab=meal`}>
+                              Meal
+                            </Link>
+                          </div>
                         </div>
                       );
                     })
@@ -893,15 +905,29 @@ function formatShortDate(value: string) {
   });
 }
 
-function AnalyticsStat({ label, value, note, icon: Icon }: StatItem) {
-  return (
-    <article className="card admin-stat-card">
+function AnalyticsStat({ label, value, note, icon: Icon, href }: StatItem & { href?: string }) {
+  const content = (
+    <>
       <div className="metric-header">
         <h4>{label}</h4>
         <Icon size={17} />
       </div>
       <div className="metric-val">{value}</div>
       <span className="badge-tag">{note}</span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link className="card admin-stat-card admin-stat-link" href={href} aria-label={`Open ${label}`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <article className="card admin-stat-card">
+      {content}
     </article>
   );
 }

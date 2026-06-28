@@ -68,7 +68,7 @@ export function DashboardHome() {
   );
   const trainerNoteCount = clients.reduce((total, client) => total + client.notes.length, 0);
   const recentNotes = clients
-    .flatMap((client) => client.notes.map((note) => ({ ...note, clientName: client.name, avatar: client.avatar })))
+    .flatMap((client) => client.notes.map((note) => ({ ...note, clientId: client.id, clientName: client.name, avatar: client.avatar })))
     .slice(0, 4);
   const recentClients = clients.slice(0, 4);
 
@@ -121,7 +121,7 @@ export function DashboardHome() {
                   <BarChart2 size={18} /> Business Metrics
                 </div>
                 <div className="metrics-grid">
-                  <div className="metric-card">
+                  <Link className="metric-card metric-card-link" href="/clients?status=active" aria-label="View active clients">
                     <div className="metric-header">
                       <h4>Active Clients</h4>
                       <Users size={16} style={{ color: "var(--accent-red)" }} />
@@ -130,8 +130,8 @@ export function DashboardHome() {
                     <span className="badge-tag" style={{ background: "var(--bg-light)", color: "var(--accent-green)" }}>
                       {clients.length} total
                     </span>
-                  </div>
-                  <div className="metric-card">
+                  </Link>
+                  <Link className="metric-card metric-card-link" href="/clients?status=active&renewal=ending-soon" aria-label="View clients with renewals in the next 7 days">
                     <div className="metric-header">
                       <h4>Pending Renewals</h4>
                       <TrendingUp size={16} style={{ color: "var(--text-muted)" }} />
@@ -140,7 +140,7 @@ export function DashboardHome() {
                     <span className="badge-tag" style={{ background: "rgba(var(--accent-rgb), 0.1)", color: "var(--accent-red)" }}>
                       Next 7 days
                     </span>
-                  </div>
+                  </Link>
                 </div>
               </section>
 
@@ -208,15 +208,13 @@ export function DashboardHome() {
                           </>
                         }
                         time={note.createdAt}
+                        href={`/client-profile?clientId=${note.clientId}`}
                       />
                     ))
                   ) : (
                     <span className="text-muted">No trainer notes saved yet.</span>
                   )}
                 </div>
-                <Link className="btn-secondary link-button" href="/clients">
-                  View Clients
-                </Link>
               </section>
             </div>
 
@@ -444,7 +442,7 @@ function QuickAction({ href, icon: Icon, label }: { href: string; icon: LucideIc
   );
 }
 
-function ActivityItem({ avatar, body, time }: { avatar: string; body: React.ReactNode; time: string }) {
+function ActivityItem({ avatar, body, time, href }: { avatar: string; body: React.ReactNode; time: string; href: string }) {
   return (
     <div className="feed-item">
       <img src={avatar} className="feed-avatar" alt="" />
@@ -452,6 +450,9 @@ function ActivityItem({ avatar, body, time }: { avatar: string; body: React.Reac
         {body}
         <span className="feed-time">{time}</span>
       </div>
+      <Link className="text-link feed-action-link" href={href}>
+        Profile
+      </Link>
     </div>
   );
 }
