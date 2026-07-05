@@ -2571,17 +2571,32 @@ body {
 .workout-day-editor {
     padding: 16px;
     border-radius: 10px;
-    border: 1px solid var(--border-light);
-    background: #111114;
+    border: 1px solid rgba(45, 212, 191, 0.18);
+    background: linear-gradient(180deg, rgba(45, 212, 191, 0.055), rgba(17, 17, 20, 0.98) 92%);
 }
 
 .day-editor-header {
     justify-content: space-between;
     align-items: flex-start;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(45, 212, 191, 0.18);
+    border-radius: 8px;
+    background: rgba(45, 212, 191, 0.08);
 }
 
 .day-title-row {
     flex: 1;
+}
+
+.day-editor-header .form-group label,
+.meal-day-heading {
+    color: #5EEAD4;
+}
+
+.day-editor-header .form-group input {
+    border-color: rgba(45, 212, 191, 0.24);
+    background: rgba(10, 10, 11, 0.72);
 }
 
 .exercise-prescription {
@@ -2589,18 +2604,18 @@ body {
     gap: 14px;
     padding: 16px;
     border-radius: 10px;
-    background: #15161A;
-    border: 1px solid var(--border-light);
+    background: #18191E;
+    border: 1px solid rgba(245, 158, 11, 0.24);
 }
 
 .prescription-title {
     justify-content: space-between;
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .prescription-title strong {
-    color: var(--text-main);
+    color: #FDE68A;
     font-size: 15px;
     line-height: 1.35;
 }
@@ -2655,9 +2670,10 @@ body {
 
 .empty-day {
     padding: 14px;
+    border: 1px dashed rgba(148, 163, 184, 0.28);
     border-radius: 8px;
-    color: var(--text-muted);
-    background: #15161A;
+    color: #A7B0C2;
+    background: rgba(148, 163, 184, 0.08);
     font-size: 13px;
 }
 
@@ -3303,14 +3319,17 @@ body {
 }
 
 .exercise-library-actions {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 7px;
+    display: flex;
+    justify-content: flex-end;
     padding: 0 14px 13px;
 }
 
 .exercise-library-actions button {
     min-height: 29px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     padding: 5px 11px;
     border: 1px solid var(--border-light);
     border-radius: 7px;
@@ -4415,6 +4434,28 @@ body {
     text-transform: uppercase;
 }
 
+.modal-content.workout-modal-content {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.workout-modal-content .modal-header {
+    flex: 0 0 auto;
+}
+
+.workout-modal-content .modal-form {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
 .progress-track {
     border-color: var(--border-light);
     background: var(--surface-3);
@@ -4961,6 +5002,7 @@ body {
 
 .testimonial-row {
     align-items: start;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
 }
 
 .testimonial-row > div {
@@ -4969,6 +5011,112 @@ body {
 
 .testimonial-row span {
     line-height: 1.4;
+}
+
+.testimonial-image-field {
+    display: grid;
+    gap: 8px;
+}
+
+.testimonial-image-field input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.testimonial-image-upload,
+.testimonial-image-preview {
+    min-height: 118px;
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+}
+
+.testimonial-image-upload {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.testimonial-image-upload:hover {
+    border-color: rgba(var(--accent-rgb), 0.65);
+    color: var(--text-main);
+}
+
+.testimonial-image-preview {
+    position: relative;
+    overflow: hidden;
+}
+
+.testimonial-image-preview img,
+.testimonial-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.testimonial-image-preview .icon-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+.icon-button {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: var(--surface-3);
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.icon-button:hover {
+    border-color: rgba(var(--accent-rgb), 0.65);
+}
+
+.field-hint {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-muted);
+}
+
+.testimonial-thumb {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    background: var(--surface-2);
+}
+
+.testimonial-thumb-empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-red);
+}
+
+.testimonial-social-link {
+    width: fit-content;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    color: var(--accent-red) !important;
+    text-decoration: none;
+}
+
+.testimonial-social-link:hover {
+    text-decoration: underline;
 }
 
 .testimonial-stars {
@@ -4989,6 +5137,38 @@ body {
     padding: 7px 12px;
     font-size: 12px;
     white-space: nowrap;
+}
+
+.testimonial-review-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+}
+
+.testimonial-editor-card {
+    margin-bottom: 24px;
+}
+
+.testimonial-form-actions,
+.testimonial-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.testimonial-row-actions .text-muted {
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.danger-icon-button {
+    color: var(--danger-red);
+}
+
+.danger-icon-button:hover {
+    border-color: rgba(248, 113, 113, 0.55);
+    color: #FCA5A5;
 }
 
 @media (max-width: 1100px) {
@@ -5023,5 +5203,17 @@ body {
 
     .meal-row-remove {
         width: fit-content;
+    }
+
+    .testimonial-row {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .testimonial-row > .status-pill,
+    .testimonial-row-actions {
+        grid-column: 2;
+        justify-self: start;
+        justify-content: flex-start;
+        flex-wrap: wrap;
     }
 }

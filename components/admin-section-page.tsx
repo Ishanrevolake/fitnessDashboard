@@ -9,25 +9,39 @@ import {
   Edit3,
   Eye,
   FileText,
+  ImagePlus,
+  AtSign,
   MessageCircle,
   PlaySquare,
   Plus,
   Salad,
   Send,
   Star,
+  Trash2,
   TrendingUp,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PageHeader } from "@/components/page-header";
 import { TabNavigation } from "@/components/tab-navigation";
 import { useAuth } from "@/components/auth-provider";
-import { createBlogPostViaApi, createTestimonialViaApi, fetchBlogPosts, fetchClients, fetchTestimonials, updateTestimonialStatusViaApi } from "@/lib/api-client";
+import {
+  fetchAnalyticsEvents,
+  createBlogPostViaApi,
+  createTestimonialViaApi,
+  deleteTestimonialViaApi,
+  fetchBlogPosts,
+  fetchClients,
+  fetchTestimonials,
+  updateTestimonialStatusViaApi,
+  updateTestimonialViaApi,
+} from "@/lib/api-client";
 import { hasTrainerAccess, type AuthUser } from "@/lib/auth-store";
 import { normalizeClientMealPlan } from "@/lib/meal-plan-utils";
-import type { BlogPost, BlogPostInput, BlogPostStatus, FitnessClient, Testimonial, TestimonialInput } from "@/lib/types";
+import type { AnalyticsEvent, BlogPost, BlogPostInput, BlogPostStatus, FitnessClient, Testimonial, TestimonialInput } from "@/lib/types";
 
 type SectionKind = "analytics" | "leads" | "blog" | "testimonials" | "recipes" | "social" | "notifications";
 
@@ -46,6 +60,8 @@ type TableItem = {
 };
 
 const testimonialCategoryOptions = ["Fat Loss", "Muscle Gain", "Strength", "Conditioning", "Lifestyle"];
+const testimonialImageMaxBytes = 2 * 1024 * 1024;
+const testimonialImageAccept = "image/jpeg,image/png,image/webp";
 
 const sectionConfig: Record<
   SectionKind,
@@ -208,18 +224,36 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
   const Icon = config.icon;
   const { user } = useAuth();
   const [clients, setClients] = useState<FitnessClient[]>([]);
+  const [analyticsEvents, setAnalyticsEvents] = useState<AnalyticsEvent[]>([]);
   const [loading, setLoading] = useState(section === "analytics");
+  const [eventsLoading, setEventsLoading] = useState(section === "analytics");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (section !== "analytics") return;
 
     setLoading(true);
+    setEventsLoading(true);
     setError("");
-    fetchClients()
-      .then(setClients)
-      .catch((fetchError) => setError(fetchError instanceof Error ? fetchError.message : "Unable to load analytics data."))
-      .finally(() => setLoading(false));
+    Promise.allSettled([fetchClients(), fetchAnalyticsEvents()])
+      .then(([clientsResult, eventsResult]) => {
+        if (clientsResult.status === "fulfilled") {
+          setClients(clientsResult.value);
+        } else {
+          setError(clientsResult.reason instanceof Error ? clientsResult.reason.message : "Unable to load analytics data.");
+        }
+
+        if (eventsResult.status === "fulfilled") {
+          setAnalyticsEvents(eventsResult.value);
+        } else {
+          const message = eventsResult.reason instanceof Error ? eventsResult.reason.message : "Unable to load analytics events.";
+          setError((current) => [current, message].filter(Boolean).join(" "));
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+        setEventsLoading(false);
+      });
   }, [section]);
 
   const analytics = useMemo(() => {
@@ -257,6 +291,8 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
     };
   }, [clients]);
 
+  const eventAnalytics = useMemo(() => buildEventAnalytics(analyticsEvents), [analyticsEvents]);
+
   if (section === "notifications") {
     return (
       <DashboardShell>
@@ -287,6 +323,13 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
               <AnalyticsStat label="Assigned exercises" value={loading ? "-" : String(analytics.assignedExercises)} note={`${analytics.clientsWithWorkouts} clients with workouts`} icon={Dumbbell} href="/exercises" />
               <AnalyticsStat label="Assigned meals" value={loading ? "-" : String(analytics.assignedMeals)} note={`${analytics.clientsWithMeals} clients with meals`} icon={Salad} href="/meal-plans" />
               <AnalyticsStat label="Trainer notes" value={loading ? "-" : String(analytics.totalNotes)} note={`${analytics.renewalWatch} renewals in 7 days`} icon={MessageCircle} href="/clients?status=active&renewal=ending-soon" />
+            </section>
+
+            <section className="admin-stat-grid">
+              <AnalyticsStat label="Website events" value={eventsLoading ? "-" : String(analyticsEvents.length)} note="From analytics_events" icon={BarChart3} />
+              <AnalyticsStat label="Unique visitors" value={eventsLoading ? "-" : String(eventAnalytics.uniqueVisitorCount)} note="Visitors or sessions" icon={Users} />
+              <AnalyticsStat label="Page views" value={eventsLoading ? "-" : String(eventAnalytics.pageViewCount)} note={`${eventAnalytics.topPages.length} tracked pages`} icon={Eye} />
+              <AnalyticsStat label="Lead events" value={eventsLoading ? "-" : String(eventAnalytics.leadEventCount)} note={`${eventAnalytics.conversionEventCount} conversion events`} icon={TrendingUp} />
             </section>
 
             <section className="admin-content-grid">
@@ -346,6 +389,63 @@ export function AdminSectionPage({ section }: { section: SectionKind }) {
                   <AnalyticsProgress label="Meal coverage" value={analytics.clientsWithMeals} total={Math.max(clients.length, 1)} />
                   {Object.entries(analytics.packageCounts).map(([label, value]) => (
                     <AnalyticsProgress key={label} label={label} value={value} total={Math.max(clients.length, 1)} />
+                  ))}
+                </div>
+              </aside>
+            </section>
+
+            <section className="admin-content-grid">
+              <article className="card">
+                <div className="card-title">
+                  <BarChart3 size={18} /> Recent analytics events
+                </div>
+                <div className="admin-table">
+                  {eventsLoading ? (
+                    <div className="admin-table-row">
+                      <div>
+                        <strong>Loading analytics events</strong>
+                        <span>Reading from Supabase analytics_events.</span>
+                      </div>
+                    </div>
+                  ) : eventAnalytics.recentEvents.length ? (
+                    eventAnalytics.recentEvents.map((event, index) => (
+                      <div className="admin-table-row analytics-event-row" key={getAnalyticsEventId(event, index)}>
+                        <div>
+                          <strong>{getAnalyticsEventName(event)}</strong>
+                          <span>{getAnalyticsEventPath(event) || "No page path recorded"}</span>
+                        </div>
+                        <span className="status-pill">{getAnalyticsEventSource(event)}</span>
+                        <span className="text-muted">{formatAnalyticsEventDate(event)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="admin-table-row">
+                      <div>
+                        <strong>No analytics events yet</strong>
+                        <span>Events from public.analytics_events will appear here once your tracking starts writing rows.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </article>
+
+              <aside className="card">
+                <div className="card-title">
+                  <TrendingUp size={18} /> Top analytics signals
+                </div>
+                <div className="admin-progress-list">
+                  {eventAnalytics.topPages.length ? (
+                    eventAnalytics.topPages.map((item) => (
+                      <AnalyticsProgress key={item.label} label={item.label} value={item.value} total={eventAnalytics.pageViewCount || item.value} />
+                    ))
+                  ) : (
+                    <div className="empty-state compact-empty">
+                      <strong>No page data yet</strong>
+                      <span className="text-muted">Tracked pages will rank here.</span>
+                    </div>
+                  )}
+                  {eventAnalytics.topEvents.map((item) => (
+                    <AnalyticsProgress key={`event-${item.label}`} label={item.label} value={item.value} total={analyticsEvents.length || item.value} />
                   ))}
                 </div>
               </aside>
@@ -605,10 +705,11 @@ function TestimonialsSection({ user, isTrainer }: { user: AuthUser | null; isTra
     return <ClientTestimonialsSection user={user} />;
   }
 
-  return <TrainerTestimonialsSection />;
+  return <TrainerTestimonialsSection user={user} />;
 }
 
 function ClientTestimonialsSection({ user }: { user: AuthUser | null }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -618,6 +719,9 @@ function ClientTestimonialsSection({ user }: { user: AuthUser | null }) {
     text: "",
     category: testimonialCategoryOptions[0],
     rating: 5,
+    imageUrl: "",
+    imageSizeBytes: 0,
+    instagramUrl: "",
   });
 
   useEffect(() => {
@@ -633,6 +737,44 @@ function ClientTestimonialsSection({ user }: { user: AuthUser | null }) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function clearImage() {
+    setForm((current) => ({ ...current, imageUrl: "", imageSizeBytes: 0 }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setError("");
+
+    if (!file) {
+      clearImage();
+      return;
+    }
+
+    if (file.size > testimonialImageMaxBytes) {
+      clearImage();
+      setError("Testimonial image must be 2 MB or smaller.");
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      clearImage();
+      setError("Upload a JPG, PNG, or WebP testimonial image.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((current) => ({
+        ...current,
+        imageUrl: typeof reader.result === "string" ? reader.result : "",
+        imageSizeBytes: file.size,
+      }));
+    };
+    reader.onerror = () => setError("Unable to read the selected image.");
+    reader.readAsDataURL(file);
+  }
+
   async function submitTestimonial(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -641,7 +783,8 @@ function ClientTestimonialsSection({ user }: { user: AuthUser | null }) {
 
     try {
       const createdTestimonial = await createTestimonialViaApi(form);
-      setForm((current) => ({ ...current, text: "", rating: 5 }));
+      setForm((current) => ({ ...current, text: "", rating: 5, imageUrl: "", imageSizeBytes: 0, instagramUrl: "" }));
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setMessage(`Thanks ${createdTestimonial.name}. Your testimonial was submitted for review.`);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save testimonial.");
@@ -694,6 +837,39 @@ function ClientTestimonialsSection({ user }: { user: AuthUser | null }) {
                   </select>
                 </div>
 
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="testimonialImage">Image</label>
+                    <div className="testimonial-image-field">
+                      {form.imageUrl ? (
+                        <div className="testimonial-image-preview">
+                          <img src={form.imageUrl} alt="Selected testimonial" />
+                          <button className="icon-button" type="button" onClick={clearImage} aria-label="Remove selected testimonial image">
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="testimonial-image-upload" htmlFor="testimonialImage">
+                          <ImagePlus size={18} />
+                          <span>Upload image</span>
+                        </label>
+                      )}
+                      <input ref={fileInputRef} id="testimonialImage" type="file" accept={testimonialImageAccept} onChange={handleImageChange} />
+                    </div>
+                    <span className="field-hint">JPG, PNG, or WebP. Max 2 MB.</span>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="testimonialInstagram">Instagram link</label>
+                    <input
+                      id="testimonialInstagram"
+                      value={form.instagramUrl ?? ""}
+                      onChange={(event) => updateForm("instagramUrl", event.target.value)}
+                      placeholder="https://instagram.com/username"
+                    />
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="testimonialText">Testimonial text</label>
                   <textarea
@@ -728,12 +904,26 @@ function ClientTestimonialsSection({ user }: { user: AuthUser | null }) {
   );
 }
 
-function TrainerTestimonialsSection() {
+function TrainerTestimonialsSection({ user }: { user: AuthUser | null }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
+  const [savingForm, setSavingForm] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [form, setForm] = useState<TestimonialInput>({
+    clientId: user?.id ?? "",
+    name: "",
+    text: "",
+    category: testimonialCategoryOptions[0],
+    rating: 5,
+    imageUrl: "",
+    imageSizeBytes: 0,
+    instagramUrl: "",
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -751,6 +941,122 @@ function TrainerTestimonialsSection() {
     : "-";
   const latestTestimonial = testimonials[0];
 
+  useEffect(() => {
+    if (!user) return;
+    setForm((current) => ({ ...current, clientId: current.clientId || user.id }));
+  }, [user]);
+
+  function updateForm<Key extends keyof TestimonialInput>(key: Key, value: TestimonialInput[Key]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function resetForm() {
+    setEditingTestimonial(null);
+    setForm({
+      clientId: user?.id ?? "",
+      name: "",
+      text: "",
+      category: testimonialCategoryOptions[0],
+      rating: 5,
+      imageUrl: "",
+      imageSizeBytes: 0,
+      instagramUrl: "",
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function openAddForm() {
+    resetForm();
+    setFormOpen(true);
+    setError("");
+    setMessage("");
+  }
+
+  function openEditForm(testimonial: Testimonial) {
+    setEditingTestimonial(testimonial);
+    setFormOpen(true);
+    setError("");
+    setMessage("");
+    setForm({
+      clientId: testimonial.clientId,
+      name: testimonial.name,
+      text: testimonial.text,
+      category: testimonial.category,
+      rating: testimonial.rating,
+      imageUrl: testimonial.imageUrl ?? "",
+      imageSizeBytes: testimonial.imageSizeBytes,
+      instagramUrl: testimonial.instagramUrl ?? "",
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    resetForm();
+  }
+
+  function clearImage() {
+    setForm((current) => ({ ...current, imageUrl: "", imageSizeBytes: 0 }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setError("");
+
+    if (!file) {
+      clearImage();
+      return;
+    }
+
+    if (file.size > testimonialImageMaxBytes) {
+      clearImage();
+      setError("Testimonial image must be 2 MB or smaller.");
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      clearImage();
+      setError("Upload a JPG, PNG, or WebP testimonial image.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((current) => ({
+        ...current,
+        imageUrl: typeof reader.result === "string" ? reader.result : "",
+        imageSizeBytes: file.size,
+      }));
+    };
+    reader.onerror = () => setError("Unable to read the selected image.");
+    reader.readAsDataURL(file);
+  }
+
+  async function submitTrainerTestimonial(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingForm(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const savedTestimonial = editingTestimonial
+        ? await updateTestimonialViaApi(editingTestimonial.id, { ...form, status: editingTestimonial.status })
+        : await createTestimonialViaApi({ ...form, clientId: form.clientId || user?.id || "" });
+
+      setTestimonials((current) => {
+        const existing = current.some((item) => item.id === savedTestimonial.id);
+        return existing ? current.map((item) => (item.id === savedTestimonial.id ? savedTestimonial : item)) : [savedTestimonial, ...current];
+      });
+      setMessage(`${savedTestimonial.name}'s testimonial was ${editingTestimonial ? "updated" : "added"}.`);
+      closeForm();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save testimonial.");
+    } finally {
+      setSavingForm(false);
+    }
+  }
+
   async function approveTestimonial(testimonial: Testimonial) {
     setSavingId(testimonial.id);
     setError("");
@@ -767,10 +1073,34 @@ function TrainerTestimonialsSection() {
     }
   }
 
+  async function deleteTestimonial(testimonial: Testimonial) {
+    const confirmed = window.confirm(`Delete ${testimonial.name}'s testimonial?`);
+    if (!confirmed) return;
+
+    setSavingId(testimonial.id);
+    setError("");
+    setMessage("");
+
+    try {
+      await deleteTestimonialViaApi(testimonial.id);
+      setTestimonials((current) => current.filter((item) => item.id !== testimonial.id));
+      if (editingTestimonial?.id === testimonial.id) closeForm();
+      setMessage(`${testimonial.name}'s testimonial was deleted.`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to delete testimonial.");
+    } finally {
+      setSavingId("");
+    }
+  }
+
   return (
     <DashboardShell>
       <div className="dashboard-container">
-        <PageHeader title="Testimonials" subtitle="Review pending client testimonials and approve public-ready feedback." />
+        <PageHeader title="Testimonials" subtitle="Review, add, edit, and publish client feedback.">
+          <button className="btn-primary toolbar-button" type="button" onClick={formOpen ? closeForm : openAddForm}>
+            {formOpen ? <X size={16} /> : <Plus size={16} />} {formOpen ? "Close form" : "Add testimonial"}
+          </button>
+        </PageHeader>
         <TabNavigation label="Review Queue" />
 
         <main className="main-content">
@@ -784,7 +1114,103 @@ function TrainerTestimonialsSection() {
             <AnalyticsStat label="Avg rating" value={loading ? "-" : String(averageRating)} note={latestTestimonial ? `Latest ${formatShortDate(latestTestimonial.createdAt)}` : "No testimonials yet"} icon={TrendingUp} />
           </section>
 
-          <section className="admin-content-grid">
+          {formOpen ? (
+            <section className="card testimonial-editor-card">
+              <div className="card-title">
+                <Star size={18} /> {editingTestimonial ? "Edit testimonial" : "Add testimonial"}
+              </div>
+              <form className="modal-form" onSubmit={submitTrainerTestimonial}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="trainerTestimonialName">Name</label>
+                    <input id="trainerTestimonialName" required value={form.name} onChange={(event) => updateForm("name", event.target.value)} placeholder="Client display name" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="trainerTestimonialRating">Star rate</label>
+                    <select id="trainerTestimonialRating" className="modern-select" value={form.rating} onChange={(event) => updateForm("rating", Number(event.target.value))}>
+                      <option value={5}>5 stars</option>
+                      <option value={4}>4 stars</option>
+                      <option value={3}>3 stars</option>
+                      <option value={2}>2 stars</option>
+                      <option value={1}>1 star</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="trainerTestimonialCategory">Category</label>
+                    <select id="trainerTestimonialCategory" className="modern-select" value={form.category} onChange={(event) => updateForm("category", event.target.value)}>
+                      {testimonialCategoryOptions.map((category) => (
+                        <option value={category} key={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="trainerTestimonialInstagram">Instagram link</label>
+                    <input
+                      id="trainerTestimonialInstagram"
+                      value={form.instagramUrl ?? ""}
+                      onChange={(event) => updateForm("instagramUrl", event.target.value)}
+                      placeholder="https://instagram.com/username"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="trainerTestimonialClientId">Client id</label>
+                    <input id="trainerTestimonialClientId" required value={form.clientId} onChange={(event) => updateForm("clientId", event.target.value)} placeholder="Supabase client user id" />
+                    <span className="field-hint">Defaults to the trainer account id for manual entries.</span>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="trainerTestimonialImage">Image</label>
+                    <div className="testimonial-image-field">
+                      {form.imageUrl ? (
+                        <div className="testimonial-image-preview">
+                          <img src={form.imageUrl} alt="Selected testimonial" />
+                          <button className="icon-button" type="button" onClick={clearImage} aria-label="Remove selected testimonial image">
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="testimonial-image-upload" htmlFor="trainerTestimonialImage">
+                          <ImagePlus size={18} />
+                          <span>Upload image</span>
+                        </label>
+                      )}
+                      <input ref={fileInputRef} id="trainerTestimonialImage" type="file" accept={testimonialImageAccept} onChange={handleImageChange} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="trainerTestimonialText">Testimonial text</label>
+                  <textarea
+                    id="trainerTestimonialText"
+                    required
+                    rows={6}
+                    value={form.text}
+                    onChange={(event) => updateForm("text", event.target.value)}
+                    placeholder="Write or paste the client feedback."
+                  />
+                </div>
+
+                <div className="testimonial-form-actions">
+                  <button className="btn-primary toolbar-button" type="submit" disabled={savingForm || !user}>
+                    <Star size={16} /> {savingForm ? "Saving..." : editingTestimonial ? "Save changes" : "Add testimonial"}
+                  </button>
+                  <button className="btn-secondary compact-action" type="button" onClick={closeForm}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </section>
+          ) : null}
+
+          <section className="testimonial-review-layout">
             <article className="card">
               <div className="card-title">
                 <Star size={18} /> Pending approvals
@@ -801,6 +1227,8 @@ function TrainerTestimonialsSection() {
                         testimonial={testimonial}
                         saving={savingId === testimonial.id}
                         onApprove={() => approveTestimonial(testimonial)}
+                        onEdit={() => openEditForm(testimonial)}
+                        onDelete={() => deleteTestimonial(testimonial)}
                       />
                     ))
                 ) : (
@@ -814,7 +1242,7 @@ function TrainerTestimonialsSection() {
               </div>
             </article>
 
-            <aside className="card">
+            <article className="card">
               <div className="card-title">
                 <Eye size={18} /> Approved testimonials
               </div>
@@ -824,7 +1252,15 @@ function TrainerTestimonialsSection() {
                 ) : approvedCount ? (
                   testimonials
                     .filter((testimonial) => testimonial.status === "approved")
-                    .map((testimonial) => <TestimonialApprovedRow key={testimonial.id} testimonial={testimonial} />)
+                    .map((testimonial) => (
+                      <TestimonialApprovedRow
+                        key={testimonial.id}
+                        testimonial={testimonial}
+                        saving={savingId === testimonial.id}
+                        onEdit={() => openEditForm(testimonial)}
+                        onDelete={() => deleteTestimonial(testimonial)}
+                      />
+                    ))
                 ) : (
                   <div className="admin-table-row">
                     <div>
@@ -834,7 +1270,7 @@ function TrainerTestimonialsSection() {
                   </div>
                 )}
               </div>
-            </aside>
+            </article>
           </section>
         </main>
       </div>
@@ -853,34 +1289,96 @@ function TestimonialLoadingRow() {
   );
 }
 
-function TestimonialReviewRow({ testimonial, saving, onApprove }: { testimonial: Testimonial; saving: boolean; onApprove: () => void }) {
+function TestimonialReviewRow({
+  testimonial,
+  saving,
+  onApprove,
+  onEdit,
+  onDelete,
+}: {
+  testimonial: Testimonial;
+  saving: boolean;
+  onApprove: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div className="admin-table-row testimonial-row">
+      {testimonial.imageUrl ? (
+        <img className="testimonial-thumb" src={testimonial.imageUrl} alt={`${testimonial.name} testimonial`} />
+      ) : (
+        <div className="testimonial-thumb testimonial-thumb-empty" aria-hidden="true">
+          <Star size={16} />
+        </div>
+      )}
       <div>
         <strong>{testimonial.name}</strong>
         <span>{testimonial.text}</span>
         <span className="text-muted">{testimonial.category}</span>
+        {testimonial.instagramUrl ? (
+          <a className="testimonial-social-link" href={testimonial.instagramUrl} target="_blank" rel="noreferrer">
+            <AtSign size={13} /> Instagram
+          </a>
+        ) : null}
         <RatingStars rating={testimonial.rating} />
       </div>
       <span className="status-pill">Pending</span>
-      <button className="btn-primary compact-action" type="button" disabled={saving} onClick={onApprove}>
-        <CheckCircle2 size={15} /> {saving ? "Approving..." : "Approve"}
-      </button>
+      <div className="testimonial-row-actions">
+        <button className="btn-primary compact-action" type="button" disabled={saving} onClick={onApprove}>
+          <CheckCircle2 size={15} /> {saving ? "Saving..." : "Approve"}
+        </button>
+        <button className="icon-button" type="button" disabled={saving} onClick={onEdit} aria-label={`Edit ${testimonial.name}'s testimonial`}>
+          <Edit3 size={15} />
+        </button>
+        <button className="icon-button danger-icon-button" type="button" disabled={saving} onClick={onDelete} aria-label={`Delete ${testimonial.name}'s testimonial`}>
+          <Trash2 size={15} />
+        </button>
+      </div>
     </div>
   );
 }
 
-function TestimonialApprovedRow({ testimonial }: { testimonial: Testimonial }) {
+function TestimonialApprovedRow({
+  testimonial,
+  saving,
+  onEdit,
+  onDelete,
+}: {
+  testimonial: Testimonial;
+  saving: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div className="admin-table-row testimonial-row">
+      {testimonial.imageUrl ? (
+        <img className="testimonial-thumb" src={testimonial.imageUrl} alt={`${testimonial.name} testimonial`} />
+      ) : (
+        <div className="testimonial-thumb testimonial-thumb-empty" aria-hidden="true">
+          <Star size={16} />
+        </div>
+      )}
       <div>
         <strong>{testimonial.name}</strong>
         <span>{testimonial.text}</span>
         <span className="text-muted">{testimonial.category}</span>
+        {testimonial.instagramUrl ? (
+          <a className="testimonial-social-link" href={testimonial.instagramUrl} target="_blank" rel="noreferrer">
+            <AtSign size={13} /> Instagram
+          </a>
+        ) : null}
         <RatingStars rating={testimonial.rating} />
       </div>
       <span className="status-pill status-success">Approved</span>
-      <span className="text-muted">{formatShortDate(testimonial.approvedAt ?? testimonial.updatedAt)}</span>
+      <div className="testimonial-row-actions">
+        <span className="text-muted">{formatShortDate(testimonial.approvedAt ?? testimonial.updatedAt)}</span>
+        <button className="icon-button" type="button" disabled={saving} onClick={onEdit} aria-label={`Edit ${testimonial.name}'s testimonial`}>
+          <Edit3 size={15} />
+        </button>
+        <button className="icon-button danger-icon-button" type="button" disabled={saving} onClick={onDelete} aria-label={`Delete ${testimonial.name}'s testimonial`}>
+          <Trash2 size={15} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -893,6 +1391,135 @@ function RatingStars({ rating }: { rating: number }) {
       ))}
     </span>
   );
+}
+
+type AnalyticsCountItem = {
+  label: string;
+  value: number;
+};
+
+function getAnalyticsText(event: AnalyticsEvent, keys: string[]) {
+  for (const key of keys) {
+    const value = event[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+
+  for (const nestedKey of ["metadata", "properties"]) {
+    const nested = event[nestedKey];
+    if (!nested || typeof nested !== "object") continue;
+
+    for (const key of keys) {
+      const value = (nested as Record<string, unknown>)[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+      if (typeof value === "number" && Number.isFinite(value)) return String(value);
+    }
+  }
+
+  return "";
+}
+
+function getAnalyticsEventId(event: AnalyticsEvent, index: number) {
+  return getAnalyticsText(event, ["id", "event_id", "uuid"]) || `analytics-event-${index}`;
+}
+
+function getAnalyticsEventName(event: AnalyticsEvent) {
+  return getAnalyticsText(event, ["event_name", "event_type", "name", "type", "action"]) || "analytics event";
+}
+
+function getAnalyticsEventPath(event: AnalyticsEvent) {
+  return getAnalyticsText(event, ["path", "page", "page_path", "route", "url", "href", "pathname"]);
+}
+
+function getAnalyticsEventSource(event: AnalyticsEvent) {
+  return getAnalyticsText(event, ["source", "channel", "referrer", "utm_source", "device"]) || "event";
+}
+
+function getAnalyticsEventActor(event: AnalyticsEvent) {
+  return getAnalyticsText(event, ["visitor_id", "session_id", "anonymous_id", "user_id", "client_id", "ip"]);
+}
+
+function getAnalyticsEventTimestamp(event: AnalyticsEvent) {
+  return getAnalyticsText(event, ["created_at", "timestamp", "occurred_at", "event_time", "time", "date"]);
+}
+
+function formatAnalyticsEventDate(event: AnalyticsEvent) {
+  const timestamp = getAnalyticsEventTimestamp(event);
+  if (!timestamp) return "-";
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function incrementCount(counts: Map<string, number>, label: string) {
+  const normalizedLabel = label.trim() || "Unknown";
+  counts.set(normalizedLabel, (counts.get(normalizedLabel) ?? 0) + 1);
+}
+
+function getTopCounts(counts: Map<string, number>, limit: number): AnalyticsCountItem[] {
+  return Array.from(counts.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+    .slice(0, limit);
+}
+
+function buildEventAnalytics(events: AnalyticsEvent[]) {
+  const visitorIds = new Set<string>();
+  const pageCounts = new Map<string, number>();
+  const eventCounts = new Map<string, number>();
+  let pageViewCount = 0;
+  let leadEventCount = 0;
+  let conversionEventCount = 0;
+
+  events.forEach((event) => {
+    const name = getAnalyticsEventName(event);
+    const nameKey = name.toLowerCase();
+    const path = getAnalyticsEventPath(event);
+    const actor = getAnalyticsEventActor(event);
+
+    incrementCount(eventCounts, name);
+    if (actor) visitorIds.add(actor);
+
+    if (path) {
+      pageViewCount += 1;
+      incrementCount(pageCounts, path);
+    } else if (nameKey.includes("page") || nameKey.includes("view")) {
+      pageViewCount += 1;
+    }
+
+    if (/(lead|form|submit|signup|sign_up|contact|enquiry|inquiry)/i.test(nameKey)) {
+      leadEventCount += 1;
+    }
+
+    if (/(conversion|purchase|payment|checkout|package|subscribe|success)/i.test(nameKey)) {
+      conversionEventCount += 1;
+    }
+  });
+
+  const recentEvents = [...events]
+    .sort((a, b) => {
+      const aTime = new Date(getAnalyticsEventTimestamp(a)).getTime();
+      const bTime = new Date(getAnalyticsEventTimestamp(b)).getTime();
+      return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime);
+    })
+    .slice(0, 8);
+
+  return {
+    uniqueVisitorCount: visitorIds.size,
+    pageViewCount,
+    leadEventCount,
+    conversionEventCount,
+    topPages: getTopCounts(pageCounts, 5),
+    topEvents: getTopCounts(eventCounts, 5),
+    recentEvents,
+  };
 }
 
 function formatShortDate(value: string) {

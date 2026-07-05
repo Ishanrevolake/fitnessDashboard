@@ -79,7 +79,7 @@ const navGroups: NavGroup[] = [
     children: [
       { label: "Blog Posts", href: "/blog-posts", icon: PenLine },
       { label: "Testimonials", href: "/testimonials", icon: SquareLibrary },
-      { label: "Recipe Book", href: "/recipes", icon: Utensils },
+      { label: "Meal Plans", href: "/recipes", icon: Utensils },
     ],
   },
   {

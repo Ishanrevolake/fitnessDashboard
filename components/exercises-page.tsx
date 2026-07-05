@@ -1,51 +1,34 @@
 "use client";
 
-import { CalendarDays, Plus, Search, X } from "lucide-react";
+import { CalendarDays, Edit3, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PageHeader } from "@/components/page-header";
-import { fetchClientWorkoutPlan } from "@/lib/api-client";
+import { createExerciseViaApi, fetchClientWorkoutPlan, fetchExercises, updateExerciseViaApi } from "@/lib/api-client";
 import { hasTrainerAccess } from "@/lib/auth-store";
 import { exerciseCategories, exerciseLibrary } from "@/lib/exercise-library";
 import type { AssignedExercise, ExerciseCategory, ExerciseLibraryItem, WorkoutDay, WorkoutPlan } from "@/lib/types";
 
-const customExercisesStorageKey = "alphaFitnessCustomExercises";
-
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
-function getStoredCustomExercises() {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const rawExercises = window.localStorage.getItem(customExercisesStorageKey);
-    if (!rawExercises) return [];
-
-    return JSON.parse(rawExercises) as ExerciseLibraryItem[];
-  } catch {
-    return [];
-  }
-}
-
-function saveStoredCustomExercises(exercises: ExerciseLibraryItem[]) {
-  if (typeof window === "undefined") return;
-
-  window.localStorage.setItem(customExercisesStorageKey, JSON.stringify(exercises));
 }
 
 export function ExercisesPage() {
   const { user, loading: authLoading } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<ExerciseCategory | "">("");
-  const [customExercises, setCustomExercises] = useState<ExerciseLibraryItem[]>([]);
+  const [exercises, setExercises] = useState<ExerciseLibraryItem[]>(exerciseLibrary);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<ExerciseLibraryItem | null>(null);
+  const [libraryLoading, setLibraryLoading] = useState(true);
+  const [libraryError, setLibraryError] = useState("");
+  const [libraryMessage, setLibraryMessage] = useState("");
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [planError, setPlanError] = useState("");
   const trainerAccess = user ? hasTrainerAccess(user.role) : false;
-  const allExercises = useMemo(() => [...customExercises, ...exerciseLibrary], [customExercises]);
+  const allExercises = exercises;
 
   const filteredExercises = useMemo(() => {
     const normalizedSearch = search.toLowerCase().trim();
@@ -61,7 +44,15 @@ export function ExercisesPage() {
   }, [allExercises, category, search]);
 
   useEffect(() => {
-    setCustomExercises(getStoredCustomExercises());
+    setLibraryLoading(true);
+    setLibraryError("");
+    fetchExercises()
+      .then((loadedExercises) => setExercises(loadedExercises.length ? loadedExercises : exerciseLibrary))
+      .catch((error) => {
+        setExercises(exerciseLibrary);
+        setLibraryError(error instanceof Error ? error.message : "Unable to load exercises from Supabase.");
+      })
+      .finally(() => setLibraryLoading(false));
   }, []);
 
   useEffect(() => {
@@ -110,6 +101,8 @@ export function ExercisesPage() {
       <PageHeader title="Exercise Library" subtitle={`${allExercises.length} exercises available in the library`} />
 
       <main className="main-content">
+        {libraryMessage ? <div className="auth-error success-message">{libraryMessage}</div> : null}
+        {libraryError ? <div className="auth-error">{libraryError}</div> : null}
         <section className="search-section exercise-filter-bar">
           <div className="search-control">
             <Search size={20} style={{ color: "var(--text-muted)" }} />
@@ -128,20 +121,36 @@ export function ExercisesPage() {
           </button>
         </section>
 
+        {libraryLoading ? <div className="card empty-state">Loading exercises from Supabase...</div> : null}
         <section className="exercise-library-grid">
           {filteredExercises.map((exercise) => (
-            <ExerciseLibraryCard key={exercise.id} exercise={exercise} />
+            <ExerciseLibraryCard key={exercise.id} exercise={exercise} onEdit={() => setEditingExercise(exercise)} />
           ))}
         </section>
       </main>
       <AddExerciseModal
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        onSubmit={(exercise) => {
-          const nextExercises = [exercise, ...customExercises];
-          setCustomExercises(nextExercises);
-          saveStoredCustomExercises(nextExercises);
+        onSubmit={async (exercise) => {
+          setLibraryError("");
+          setLibraryMessage("");
+          const savedExercise = await createExerciseViaApi(exercise);
+          setExercises((current) => [savedExercise, ...current.filter((item) => item.id !== savedExercise.id)].sort((a, b) => a.name.localeCompare(b.name)));
+          setLibraryMessage(`${savedExercise.name} was saved to Supabase.`);
           setAddModalOpen(false);
+        }}
+      />
+      <EditExerciseModal
+        exercise={editingExercise}
+        onClose={() => setEditingExercise(null)}
+        onSubmit={async (exerciseId, edits) => {
+          if (!editingExercise) return;
+          setLibraryError("");
+          setLibraryMessage("");
+          const savedExercise = await updateExerciseViaApi({ ...editingExercise, ...edits, id: exerciseId });
+          setExercises((current) => current.map((exercise) => (exercise.id === savedExercise.id ? savedExercise : exercise)));
+          setLibraryMessage(`${savedExercise.name} was updated in Supabase.`);
+          setEditingExercise(null);
         }}
       />
     </DashboardShell>
@@ -155,11 +164,12 @@ function AddExerciseModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (exercise: ExerciseLibraryItem) => void;
+  onSubmit: (exercise: ExerciseLibraryItem) => Promise<void> | void;
 }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ExerciseCategory>("Chest");
   const [equipment, setEquipment] = useState("");
+  const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
@@ -168,10 +178,11 @@ function AddExerciseModal({
     setName("");
     setCategory("Chest");
     setEquipment("");
+    setSaving(false);
     setFormError("");
   }, [open]);
 
-  function submitForm(event: React.FormEvent<HTMLFormElement>) {
+  async function submitForm(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedName = name.trim();
     const trimmedEquipment = equipment.trim();
@@ -181,12 +192,21 @@ function AddExerciseModal({
       return;
     }
 
-    onSubmit({
-      id: `custom-${slugify(trimmedName)}-${Date.now()}`,
-      name: trimmedName,
-      category,
-      equipment: trimmedEquipment,
-    });
+    setSaving(true);
+    setFormError("");
+
+    try {
+      await onSubmit({
+        id: slugify(trimmedName),
+        name: trimmedName,
+        category,
+        equipment: trimmedEquipment,
+      });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Unable to save exercise.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -227,8 +247,124 @@ function AddExerciseModal({
             <button type="button" className="btn-secondary" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary">
-              Add Exercise
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "Saving..." : "Add Exercise"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditExerciseModal({
+  exercise,
+  onClose,
+  onSubmit,
+}: {
+  exercise: ExerciseLibraryItem | null;
+  onClose: () => void;
+  onSubmit: (exerciseId: string, edits: Pick<ExerciseLibraryItem, "primary" | "secondary" | "equipment" | "level">) => Promise<void> | void;
+}) {
+  const meta = useMemo(() => (exercise ? getExerciseMeta(exercise) : null), [exercise]);
+  const [primary, setPrimary] = useState("");
+  const [secondary, setSecondary] = useState("");
+  const [equipment, setEquipment] = useState("");
+  const [level, setLevel] = useState("Intermediate");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    if (!exercise || !meta) return;
+
+    setPrimary(exercise.primary || meta.primary);
+    setSecondary(exercise.secondary || meta.secondary);
+    setEquipment(exercise.equipment);
+    setLevel(exercise.level || meta.level);
+    setSaving(false);
+    setFormError("");
+  }, [exercise, meta]);
+
+  async function submitForm(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!exercise) return;
+
+    const trimmedPrimary = primary.trim();
+    const trimmedSecondary = secondary.trim();
+    const trimmedEquipment = equipment.trim();
+    const trimmedLevel = level.trim();
+
+    if (!trimmedPrimary || !trimmedSecondary || !trimmedEquipment || !trimmedLevel) {
+      setFormError("Primary, secondary, equipment, and level are required.");
+      return;
+    }
+
+    setSaving(true);
+    setFormError("");
+
+    try {
+      await onSubmit(exercise.id, {
+        primary: trimmedPrimary,
+        secondary: trimmedSecondary,
+        equipment: trimmedEquipment,
+        level: trimmedLevel,
+      });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Unable to update exercise.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className={`modal-overlay ${exercise ? "active" : ""}`} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="edit-exercise-title">
+        <div className="modal-header">
+          <h2 id="edit-exercise-title">Edit Exercise</h2>
+          <button className="close-modal icon-btn" type="button" onClick={onClose} aria-label="Close edit exercise modal">
+            <X size={20} />
+          </button>
+        </div>
+        <form className="modal-form" onSubmit={submitForm}>
+          {formError ? <div className="auth-error">{formError}</div> : null}
+
+          <div className="form-group">
+            <label>Exercise</label>
+            <input value={exercise ? formatExerciseName(exercise.name) : ""} disabled />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="exercisePrimary">Primary</label>
+              <input id="exercisePrimary" required value={primary} onChange={(event) => setPrimary(event.target.value)} placeholder="Quads, Hamstrings" />
+            </div>
+            <div className="form-group">
+              <label htmlFor="exerciseSecondary">Secondary</label>
+              <input id="exerciseSecondary" required value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder="Glutes" />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="exerciseEditEquipment">Equipment</label>
+              <input id="exerciseEditEquipment" required value={equipment} onChange={(event) => setEquipment(event.target.value)} placeholder="Dumbbell" />
+            </div>
+            <div className="form-group">
+              <label htmlFor="exerciseLevel">Level</label>
+              <select id="exerciseLevel" className="modern-select" value={level} onChange={(event) => setLevel(event.target.value)}>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "Saving..." : "Save Exercise"}
             </button>
           </div>
         </form>
@@ -241,7 +377,7 @@ function formatExerciseName(name: string) {
   return name.replace(/\b(db)\b/gi, "DB").toUpperCase();
 }
 
-function getExerciseMeta(exercise: { name: string; category: ExerciseCategory; equipment: string }) {
+function getExerciseMeta(exercise: { name: string; category: ExerciseCategory; equipment: string; primary?: string; secondary?: string; level?: string }) {
   const value = exercise.name.toLowerCase();
   const primaryByCategory: Record<ExerciseCategory, string> = {
     Chest: "Pectorals",
@@ -270,15 +406,15 @@ function getExerciseMeta(exercise: { name: string; category: ExerciseCategory; e
   const goal = /(press|row|squat|rdl|lunge|hip thrust|pull|dead hang)/.test(value) ? "Strength" : "Hypertrophy";
 
   return {
-    primary: primaryByCategory[exercise.category],
-    secondary: secondaryByCategory[exercise.category],
-    level,
+    primary: exercise.primary || primaryByCategory[exercise.category],
+    secondary: exercise.secondary || secondaryByCategory[exercise.category],
+    level: exercise.level || level,
     pattern,
     goal,
   };
 }
 
-function ExerciseLibraryCard({ exercise }: { exercise: { id: string; name: string; category: ExerciseCategory; equipment: string } }) {
+function ExerciseLibraryCard({ exercise, onEdit }: { exercise: ExerciseLibraryItem; onEdit: () => void }) {
   const meta = getExerciseMeta(exercise);
 
   return (
@@ -316,8 +452,9 @@ function ExerciseLibraryCard({ exercise }: { exercise: { id: string; name: strin
       </div>
 
       <div className="exercise-library-actions">
-        <button type="button">View Guide</button>
-        <button type="button">+ Plan</button>
+        <button type="button" onClick={onEdit}>
+          <Edit3 size={14} /> Edit exercise
+        </button>
       </div>
     </article>
   );

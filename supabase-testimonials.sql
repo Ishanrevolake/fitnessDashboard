@@ -7,6 +7,9 @@ create table if not exists public.testimonials (
   text text not null,
   category text not null default 'Fat Loss',
   rating integer not null default 5 check (rating between 1 and 5),
+  image_url text,
+  image_size_bytes integer not null default 0 check (image_size_bytes between 0 and 2097152),
+  instagram_url text,
   status text not null default 'pending' check (status in ('pending', 'approved')),
   approved_at timestamptz,
   created_at timestamptz not null default now(),
@@ -16,6 +19,15 @@ create table if not exists public.testimonials (
 alter table public.testimonials
   add column if not exists category text not null default 'Fat Loss';
 
+alter table public.testimonials
+  add column if not exists image_url text,
+  add column if not exists image_size_bytes integer not null default 0,
+  add column if not exists instagram_url text;
+
+alter table public.testimonials
+  drop constraint if exists testimonials_image_size_bytes_check,
+  add constraint testimonials_image_size_bytes_check check (image_size_bytes between 0 and 2097152);
+
 create index if not exists testimonials_status_idx on public.testimonials (status);
 create index if not exists testimonials_category_idx on public.testimonials (category);
 create index if not exists testimonials_created_at_idx on public.testimonials (created_at desc);
@@ -23,7 +35,7 @@ create index if not exists testimonials_client_id_idx on public.testimonials (cl
 
 alter table public.testimonials enable row level security;
 
-drop policy if exists "Public can read approved testimonials" on public.testimonials;0
+drop policy if exists "Public can read approved testimonials" on public.testimonials;
 create policy "Public can read approved testimonials"
   on public.testimonials
   for select

@@ -55,6 +55,9 @@ export type ExerciseLibraryItem = {
   name: string;
   category: ExerciseCategory;
   equipment: string;
+  primary?: string;
+  secondary?: string;
+  level?: string;
 };
 
 export type AssignedExercise = {
@@ -133,6 +136,27 @@ export type NewClientInput = {
   packageId: PackageId;
 };
 
+export type AnalyticsEvent = Record<string, unknown> & {
+  id?: string;
+  event_name?: string;
+  event_type?: string;
+  name?: string;
+  type?: string;
+  action?: string;
+  path?: string;
+  page?: string;
+  route?: string;
+  url?: string;
+  visitor_id?: string;
+  session_id?: string;
+  user_id?: string;
+  client_id?: string;
+  metadata?: Record<string, unknown>;
+  properties?: Record<string, unknown>;
+  created_at?: string;
+  timestamp?: string;
+};
+
 export type BlogPostStatus = "draft" | "published";
 
 export type BlogPost = {
@@ -168,6 +192,9 @@ export type Testimonial = {
   text: string;
   category: string;
   rating: number;
+  imageUrl: string | null;
+  imageSizeBytes: number;
+  instagramUrl: string | null;
   status: TestimonialStatus;
   createdAt: string;
   updatedAt: string;
@@ -180,6 +207,9 @@ export type TestimonialInput = {
   text: string;
   category: string;
   rating: number;
+  imageUrl?: string;
+  imageSizeBytes?: number;
+  instagramUrl?: string;
 };
 
 export type ProgramTemplate = {

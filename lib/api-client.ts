@@ -1,4 +1,17 @@
-import type { BlogPost, BlogPostInput, ClientMealPlan, ClientNote, FitnessClient, NewClientInput, Testimonial, TestimonialInput, TestimonialStatus, WorkoutPlan } from "./types";
+import type {
+  BlogPost,
+  BlogPostInput,
+  AnalyticsEvent,
+  ClientMealPlan,
+  ClientNote,
+  ExerciseLibraryItem,
+  FitnessClient,
+  NewClientInput,
+  Testimonial,
+  TestimonialInput,
+  TestimonialStatus,
+  WorkoutPlan,
+} from "./types";
 import { supabase } from "./supabase";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
@@ -166,6 +179,72 @@ export async function createBlogPostViaApi(input: BlogPostInput, baseUrl = "") {
   return (await response.json()) as BlogPost;
 }
 
+export async function fetchAnalyticsEvents(baseUrl = "") {
+  const response = await fetch(`${baseUrl}/api/analytics-events`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to load analytics events");
+  }
+
+  return (await response.json()) as AnalyticsEvent[];
+}
+
+export async function fetchExercises(baseUrl = "") {
+  const response = await fetch(`${baseUrl}/api/exercises`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to load exercises");
+  }
+
+  return (await response.json()) as ExerciseLibraryItem[];
+}
+
+export async function createExerciseViaApi(input: ExerciseLibraryItem, baseUrl = "") {
+  const authHeaders = await getAuthHeaders();
+  const response = await fetch(`${baseUrl}/api/exercises`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to save exercise");
+  }
+
+  return (await response.json()) as ExerciseLibraryItem;
+}
+
+export async function updateExerciseViaApi(input: ExerciseLibraryItem, baseUrl = "") {
+  const authHeaders = await getAuthHeaders();
+  const response = await fetch(`${baseUrl}/api/exercises`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to update exercise");
+  }
+
+  return (await response.json()) as ExerciseLibraryItem;
+}
+
 export async function fetchTestimonials(baseUrl = "") {
   const authHeaders = await getAuthHeaders();
   const response = await fetch(`${baseUrl}/api/testimonials`, {
@@ -218,4 +297,42 @@ export async function updateTestimonialStatusViaApi(id: string, status: Testimon
   }
 
   return (await response.json()) as Testimonial;
+}
+
+export async function updateTestimonialViaApi(id: string, input: TestimonialInput & { status?: TestimonialStatus }, baseUrl = "") {
+  const authHeaders = await getAuthHeaders();
+  const response = await fetch(`${baseUrl}/api/testimonials`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify({ id, ...input }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to update testimonial");
+  }
+
+  return (await response.json()) as Testimonial;
+}
+
+export async function deleteTestimonialViaApi(id: string, baseUrl = "") {
+  const authHeaders = await getAuthHeaders();
+  const response = await fetch(`${baseUrl}/api/testimonials?id=${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      ...authHeaders,
+    },
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Unable to delete testimonial");
+  }
+
+  return (await response.json()) as { id: string };
 }
