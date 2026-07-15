@@ -39,7 +39,14 @@ export function normalizeMealPlanDays(days?: MealPlanDay[]) {
     return {
       id: firstMatch?.id || getDayId(day),
       day,
-      meals: meals.map((meal) => ({ ...meal, items: [...meal.items] })),
+      meals: meals.map((meal) => ({
+        ...meal,
+        items: Array.isArray(meal.items) ? [...meal.items] : [],
+        calories: Number(meal.calories) || 0,
+        protein: Number(meal.protein) || 0,
+        carbs: Number(meal.carbs) || 0,
+        fat: Number(meal.fat) || 0,
+      })),
     };
   });
 }

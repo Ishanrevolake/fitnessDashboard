@@ -34,7 +34,6 @@ import { Toast } from "@/components/toast";
 import { addClientNoteViaApi, fetchClientMealPlan, fetchClientNotes, fetchClients, updateClientMealPlanViaApi, updateClientWorkoutPlanViaApi } from "@/lib/api-client";
 import { addClientNote, getStoredClients, updateClientMealPlan, updateClientWorkoutPlan } from "@/lib/client-store";
 import { exerciseLibrary } from "@/lib/exercise-library";
-import { mealLibrary } from "@/lib/meal-library";
 import { normalizeClientMealPlan, normalizeMealPlanDays } from "@/lib/meal-plan-utils";
 import { getPackageLabel } from "@/lib/mock-data";
 import { getStoredPrograms } from "@/lib/program-store";
@@ -593,6 +592,14 @@ function getMealDisplayTime(mealTime: string) {
 }
 
 function estimateMealNutrition(meal: AssignedMeal) {
+  if (meal.calories || meal.protein || meal.carbs || meal.fat) {
+    return {
+      calories: Number(meal.calories) || 0,
+      protein: Number(meal.protein) || 0,
+      carbs: Number(meal.carbs) || 0,
+      fat: Number(meal.fat) || 0,
+    };
+  }
   const text = [meal.name, ...meal.items, meal.notes].join(" ").toLowerCase();
   const proteinSignals = (text.match(/chicken|beef|fish|salmon|tuna|egg|yogurt|cheese|protein|whey|milk|paneer|tofu/g) ?? []).length;
   const carbSignals = (text.match(/rice|oat|toast|bread|wrap|potato|banana|fruit|pasta|noodle|honey|flour/g) ?? []).length;
@@ -1064,44 +1071,53 @@ function MealPlanModal({
   onSubmit: (mealPlan: ClientMealPlan) => Promise<void> | void;
 }) {
   const [focus, setFocus] = useState(client.mealPlan?.focus ?? "Custom nutrition plan");
-  const [startDate, setStartDate] = useState(getTodayDate());
+  const [startDate, setStartDate] = useState(client.mealPlan?.startDate ?? getTodayDate());
   const [trainerNotes, setTrainerNotes] = useState(client.mealPlan?.trainerNotes ?? "");
   const [days, setDays] = useState<MealPlanDay[]>(() => getEditableMealDays(client.mealPlan));
   const [selectedDayId, setSelectedDayId] = useState("");
-  const [selectedMealId, setSelectedMealId] = useState(mealLibrary[0]?.id ?? "");
+  const [mealName, setMealName] = useState("");
   const [mealTime, setMealTime] = useState("Breakfast");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
-  const [pendingSelection, setPendingSelection] = useState(false);
+  const [activeDayId, setActiveDayId] = useState(() => getEditableMealDays(client.mealPlan)[0]?.id ?? "");
+  const [nutritionView, setNutritionView] = useState<"day" | "week">("day");
 
   useEffect(() => {
     if (!open) return;
 
     const nextDays = getEditableMealDays(client.mealPlan);
     setFocus(client.mealPlan?.focus ?? "Custom nutrition plan");
-    setStartDate(getTodayDate());
+    setStartDate(client.mealPlan?.startDate ?? getTodayDate());
     setTrainerNotes(client.mealPlan?.trainerNotes ?? "");
     setDays(nextDays);
     setSelectedDayId("every-day");
-    setSelectedMealId(mealLibrary[0]?.id ?? "");
+    setMealName("");
     setMealTime("Breakfast");
     setSaving(false);
     setFormError("");
-    setPendingSelection(false);
+    setActiveDayId(nextDays[0]?.id ?? "");
+    setNutritionView("day");
   }, [client, open]);
 
   function addMealToDay() {
-    const meal = mealLibrary.find((item) => item.id === selectedMealId);
     const dayId = selectedDayId || days[0]?.id;
-    if (!meal || !dayId) return;
+    const name = mealName.trim();
+    if (!name || !dayId) {
+      setFormError("Enter a meal name before adding it.");
+      return;
+    }
 
     const createAssignedMeal = (targetDayId: string): AssignedMeal => ({
       id: `meal-${Date.now()}-${targetDayId}`,
-      mealId: meal.id,
-      name: meal.name,
+      mealId: "",
+      name,
       mealTime,
-      items: [...meal.items],
+      items: [""],
       notes: "",
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
     });
 
     setDays((current) =>
@@ -1110,26 +1126,8 @@ function MealPlanModal({
       ),
     );
     setFormError("");
-    setPendingSelection(false);
-  }
-
-  function getDaysWithSelectedMeal() {
-    const meal = mealLibrary.find((item) => item.id === selectedMealId);
-    const dayId = selectedDayId || days[0]?.id;
-    if (!meal || !dayId) return normalizeMealPlanDays(days);
-
-    const createAssignedMeal = (targetDayId: string): AssignedMeal => ({
-      id: `meal-${Date.now()}-${targetDayId}`,
-      mealId: meal.id,
-      name: meal.name,
-      mealTime,
-      items: [...meal.items],
-      notes: "",
-    });
-
-    return normalizeMealPlanDays(days).map((day) =>
-      dayId === "every-day" || day.id === dayId ? { ...day, meals: [...day.meals, createAssignedMeal(day.id)] } : day,
-    );
+    setMealName("");
+    if (dayId !== "every-day") setActiveDayId(dayId);
   }
 
   function updateMeal(dayId: string, mealId: string, field: keyof AssignedMeal, value: string) {
@@ -1138,12 +1136,55 @@ function MealPlanModal({
         day.id === dayId
           ? {
               ...day,
-              meals: day.meals.map((meal) => (meal.id === mealId ? { ...meal, [field]: value } : meal)),
+              meals: day.meals.map((meal) =>
+                meal.id === mealId
+                  ? { ...meal, [field]: ["calories", "protein", "carbs", "fat"].includes(field) ? Math.max(0, Number(value) || 0) : value }
+                  : meal,
+              ),
             }
           : day,
       ),
     );
   }
+
+  function updateIngredient(dayId: string, mealId: string, index: number, value: string) {
+    setDays((current) => current.map((day) => day.id === dayId ? {
+      ...day,
+      meals: day.meals.map((meal) => meal.id === mealId ? { ...meal, items: meal.items.map((item, itemIndex) => itemIndex === index ? value : item) } : meal),
+    } : day));
+  }
+
+  function addIngredient(dayId: string, mealId: string) {
+    setDays((current) => current.map((day) => day.id === dayId ? {
+      ...day,
+      meals: day.meals.map((meal) => meal.id === mealId ? { ...meal, items: [...meal.items, ""] } : meal),
+    } : day));
+  }
+
+  function removeIngredient(dayId: string, mealId: string, index: number) {
+    setDays((current) => current.map((day) => day.id === dayId ? {
+      ...day,
+      meals: day.meals.map((meal) => meal.id === mealId ? { ...meal, items: meal.items.filter((_, itemIndex) => itemIndex !== index) } : meal),
+    } : day));
+  }
+
+  const activeDay = days.find((day) => day.id === activeDayId) ?? days[0];
+  const dayNutrition = (activeDay?.meals ?? []).reduce((total, meal) => ({
+    calories: total.calories + (Number(meal.calories) || 0), protein: total.protein + (Number(meal.protein) || 0),
+    carbs: total.carbs + (Number(meal.carbs) || 0), fat: total.fat + (Number(meal.fat) || 0),
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const weekNutrition = days.flatMap((day) => day.meals).reduce((total, meal) => ({
+    calories: total.calories + (Number(meal.calories) || 0), protein: total.protein + (Number(meal.protein) || 0),
+    carbs: total.carbs + (Number(meal.carbs) || 0), fat: total.fat + (Number(meal.fat) || 0),
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const displayedNutrition = nutritionView === "day" ? dayNutrition : weekNutrition;
+  const nutritionTarget = nutritionView === "day"
+    ? { calories: 2200, protein: 150, carbs: 220, fat: 70 }
+    : { calories: 15400, protein: 1050, carbs: 1540, fat: 490 };
+  const calorieProgress = Math.min(100, Math.round((displayedNutrition.calories / nutritionTarget.calories) * 100));
+  const macroCalories = displayedNutrition.protein * 4 + displayedNutrition.carbs * 4 + displayedNutrition.fat * 9;
+  const proteinDegrees = macroCalories ? (displayedNutrition.protein * 4 / macroCalories) * 360 : 0;
+  const carbDegrees = macroCalories ? proteinDegrees + (displayedNutrition.carbs * 4 / macroCalories) * 360 : 0;
 
   function removeMeal(dayId: string, mealId: string) {
     setDays((current) => current.map((day) => (day.id === dayId ? { ...day, meals: day.meals.filter((meal) => meal.id !== mealId) } : day)));
@@ -1152,11 +1193,12 @@ function MealPlanModal({
   async function submitForm(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedDays = normalizeMealPlanDays(days);
-    const sourceDays = pendingSelection || !normalizedDays.some((day) => day.meals.length > 0) ? getDaysWithSelectedMeal() : normalizedDays;
-    const cleanedDays = sourceDays.map((day) => ({
+    const cleanedDays = normalizedDays.map((day) => ({
       ...day,
       meals: day.meals.map((meal) => ({
         ...meal,
+        name: meal.name.trim(),
+        items: meal.items.map((item) => item.trim()).filter(Boolean),
         mealTime: meal.mealTime.trim(),
         notes: meal.notes.trim(),
       })),
@@ -1173,7 +1215,7 @@ function MealPlanModal({
     try {
       await onSubmit({
         focus: focus.trim(),
-        startDate: getTodayDate(),
+        startDate,
         trainerNotes: trainerNotes.trim(),
         days: cleanedDays,
       });
@@ -1211,13 +1253,19 @@ function MealPlanModal({
               </div>
             </div>
 
-            <div className="exercise-add-row">
+            <div className="meal-day-tabs" role="tablist" aria-label="Meal plan days">
+              {days.map((day) => {
+                const calories = day.meals.reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
+                return <button key={day.id} type="button" className={day.id === activeDay?.id ? "active" : ""} onClick={() => { setActiveDayId(day.id); setSelectedDayId(day.id); }}><span>{day.day.slice(0, 3)}</span><small>{calories || "—"}</small></button>;
+              })}
+            </div>
+
+            <div className="exercise-add-row meal-add-bar">
               <select
                 className="modern-select"
                 value={selectedDayId}
                 onChange={(event) => {
                   setSelectedDayId(event.target.value);
-                  setPendingSelection(true);
                 }}
               >
                 <option value="every-day">Every day</option>
@@ -1232,7 +1280,6 @@ function MealPlanModal({
                 value={mealTime}
                 onChange={(event) => {
                   setMealTime(event.target.value);
-                  setPendingSelection(true);
                 }}
               >
                 <option>Breakfast</option>
@@ -1242,47 +1289,34 @@ function MealPlanModal({
                 <option>Pre-workout</option>
                 <option>Post-workout</option>
               </select>
-              <select
-                className="modern-select exercise-select"
-                value={selectedMealId}
-                onChange={(event) => {
-                  setSelectedMealId(event.target.value);
-                  setPendingSelection(true);
-                }}
-              >
-                {mealLibrary.map((meal) => (
-                  <option key={meal.id} value={meal.id}>
-                    {meal.name}
-                  </option>
-                ))}
-              </select>
+              <input className="meal-name-input" value={mealName} placeholder="e.g. Grilled chicken & rice" onChange={(event) => setMealName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addMealToDay(); } }} />
               <button className="btn-primary toolbar-button" type="button" onClick={addMealToDay}>
-                <Plus size={14} /> Add Selected Meal
+                <Plus size={14} /> Add Meal
               </button>
             </div>
 
-            <div className="workout-day-editor-list">
-              {days.map((day) => (
+            <div className="meal-editor-layout">
+            <div className="workout-day-editor-list meal-card-list">
+              {activeDay ? [activeDay].map((day) => (
                 <div className="workout-day-editor" key={day.id}>
-                  <div className="day-editor-header">
-                    <strong className="meal-day-heading">{day.day}</strong>
-                  </div>
-
                   {day.meals.length ? (
                     <div className="exercise-prescription-list">
                       {day.meals.map((meal) => (
                         <div className="exercise-prescription" key={meal.id}>
                           <div className="prescription-title">
-                            <strong>{meal.mealTime}: {meal.name}</strong>
+                            <div><span className="meal-slot-badge">{meal.mealTime}</span><strong>{meal.name}</strong></div>
                             <button className="icon-btn" type="button" onClick={() => removeMeal(day.id, meal.id)} aria-label={`Remove ${meal.name}`}>
                               <X size={16} />
                             </button>
                           </div>
-                          <div className="meal-recipe-lines">
-                            {meal.items.slice(0, 5).map((item) => (
-                              <span key={item}>{item}</span>
+                          <div className="meal-recipe-lines meal-ingredient-editor">
+                            {meal.items.map((item, index) => (
+                              <div key={`${meal.id}-ingredient-${index}`}><input value={item} placeholder="Ingredient / portion" onChange={(event) => updateIngredient(day.id, meal.id, index, event.target.value)} /><button type="button" className="icon-btn" onClick={() => removeIngredient(day.id, meal.id, index)} aria-label="Remove ingredient"><X size={14} /></button></div>
                             ))}
-                            {meal.items.length > 5 ? <span>+ {meal.items.length - 5} more lines</span> : null}
+                            <button type="button" className="meal-add-ingredient" onClick={() => addIngredient(day.id, meal.id)}><Plus size={13} /> Add ingredient</button>
+                          </div>
+                          <div className="meal-macro-grid">
+                            {([['calories', 'Calories'], ['protein', 'Protein (g)'], ['carbs', 'Carbs (g)'], ['fat', 'Fat (g)']] as const).map(([field, label]) => <label key={field} className={`meal-macro-${field}`}><span>{label}</span><input type="number" min="0" value={meal[field] ?? 0} onChange={(event) => updateMeal(day.id, meal.id, field, event.target.value)} /></label>)}
                           </div>
                           <div className="form-row">
                             <div className="form-group">
@@ -1301,7 +1335,17 @@ function MealPlanModal({
                     <div className="empty-day">No meals assigned for this day.</div>
                   )}
                 </div>
-              ))}
+              )) : null}
+            </div>
+            <aside className="meal-nutrition-panel">
+              <div className="meal-nutrition-head"><h3>Nutrition intake</h3><div><button type="button" className={nutritionView === "day" ? "active" : ""} onClick={() => setNutritionView("day")}>{activeDay?.day.slice(0, 3) ?? "Day"}</button><button type="button" className={nutritionView === "week" ? "active" : ""} onClick={() => setNutritionView("week")}>Week</button></div></div>
+              <div className="meal-calorie-ring" style={{ background: macroCalories ? `conic-gradient(#ff6b5e 0deg ${proteinDegrees}deg, #f8c44f ${proteinDegrees}deg ${carbDegrees}deg, #6d8cff ${carbDegrees}deg 360deg)` : "#252b34" }}><div><strong>{Math.round(displayedNutrition.calories)}</strong><span>kcal · of {nutritionTarget.calories}</span></div></div>
+              <p className="meal-target-progress">♨ {calorieProgress}% of {nutritionView === "day" ? "daily" : "weekly"} target</p>
+              {([['protein', 'Protein', '#ff6b5e'], ['carbs', 'Carbs', '#f8c44f'], ['fat', 'Fat', '#6d8cff']] as const).map(([field, label, color]) => {
+                const value = displayedNutrition[field]; const target = nutritionTarget[field];
+                return <div className="meal-nutrition-row" key={field}><div><span><i style={{ background: color }} />{label}</span><strong>{value}g <small>/ {target}g</small></strong></div><div className="meal-nutrition-track"><span style={{ width: `${Math.min(100, value / target * 100)}%`, background: color }} /></div></div>;
+              })}
+            </aside>
             </div>
           </div>
 

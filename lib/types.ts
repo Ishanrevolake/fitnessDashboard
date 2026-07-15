@@ -93,6 +93,10 @@ export type AssignedMeal = {
   mealTime: string;
   items: string[];
   notes: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
 };
 
 export type MealPlanDay = {

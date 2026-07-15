@@ -2456,6 +2456,607 @@ body {
     background: #15161A;
 }
 
+.meal-name-input {
+    flex: 1;
+    min-width: 240px;
+}
+
+.meal-day-tabs {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(76px, 1fr));
+    gap: 8px;
+}
+
+.meal-day-tabs button {
+    display: grid;
+    gap: 3px;
+    padding: 10px 8px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: #15161a;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.meal-day-tabs button.active {
+    border-color: rgba(45, 212, 191, .6);
+    background: rgba(45, 212, 191, .1);
+    color: #5eead4;
+}
+
+.meal-day-tabs small {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.meal-nutrition-counter {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.meal-nutrition-counter > div {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 1px solid rgba(245, 158, 11, .24);
+    border-radius: 10px;
+    background: rgba(245, 158, 11, .05);
+}
+
+.meal-nutrition-counter span,
+.meal-nutrition-counter small {
+    color: var(--text-muted);
+}
+
+.meal-nutrition-counter strong {
+    color: #fbbf24;
+    font-size: 22px;
+}
+
+.meal-ingredient-editor > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.meal-ingredient-editor input {
+    flex: 1;
+}
+
+.meal-add-ingredient {
+    width: max-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    background: transparent;
+    color: #5eead4;
+    cursor: pointer;
+}
+
+.meal-macro-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.meal-macro-grid label {
+    display: grid;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.meal-macro-grid label > div {
+    display: flex;
+    align-items: center;
+    padding-right: 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: #0a0a0b;
+}
+
+.meal-macro-grid input {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+}
+
+.meal-macro-grid small {
+    color: var(--text-muted);
+}
+
+@media (max-width: 760px) {
+    .meal-day-tabs {
+        grid-template-columns: repeat(4, minmax(68px, 1fr));
+    }
+
+    .meal-nutrition-counter,
+    .meal-macro-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Meal editor: centered desktop canvas with invisible functional scrolling. */
+.modal-overlay:has(.meal-editor-layout) {
+    padding: 18px;
+}
+
+.modal-content.workout-modal-content:has(.meal-editor-layout) {
+    width: min(1320px, calc(100vw - 36px));
+    height: calc(100vh - 36px);
+    max-width: 1320px;
+    max-height: calc(100vh - 36px);
+    margin: auto;
+    padding: 0;
+    border-radius: 18px;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .modal-header {
+    padding: 18px 24px;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .modal-form {
+    padding: 22px 26px 34px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .modal-form::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .workout-builder {
+    padding: 18px;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .meal-editor-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .meal-add-bar {
+    padding: 14px;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .meal-add-bar .modern-select {
+    width: 170px;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .meal-card-list .exercise-prescription {
+    padding: 20px 22px;
+}
+
+.workout-modal-content:has(.meal-editor-layout) .meal-nutrition-panel {
+    padding: 20px;
+}
+
+@media (max-width: 1050px) {
+    .workout-modal-content:has(.meal-editor-layout) .meal-editor-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .modal-overlay:has(.meal-editor-layout) {
+        padding: 0;
+    }
+
+    .modal-content.workout-modal-content:has(.meal-editor-layout) {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .workout-modal-content:has(.meal-editor-layout) .modal-form {
+        padding: 18px 14px 28px;
+    }
+
+    .workout-modal-content:has(.meal-editor-layout) .meal-add-bar .modern-select {
+        width: 100%;
+    }
+}
+
+/* Clear meal-plan editor treatment */
+.workout-builder:has(.meal-editor-layout) {
+    gap: 20px;
+    padding: 22px;
+    border-color: #282e37;
+    border-radius: 18px;
+    background: #0b0e11;
+}
+
+.workout-builder:has(.meal-editor-layout) .builder-header {
+    padding: 0;
+}
+
+.meal-day-tabs {
+    display: flex;
+    gap: 12px;
+    padding: 0 4px;
+}
+
+.meal-day-tabs button {
+    width: 68px;
+    min-height: 68px;
+    padding: 9px 8px;
+    border-color: transparent;
+    border-radius: 14px;
+    background: transparent;
+    color: #69788c;
+    font-weight: 700;
+}
+
+.meal-day-tabs button.active {
+    border-color: #2b323c;
+    background: #1b2028;
+    color: #fff;
+}
+
+.meal-day-tabs button.active small {
+    color: #45dfac;
+}
+
+.meal-day-tabs small {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.meal-add-bar {
+    gap: 14px;
+    padding: 20px;
+    border-color: #29313b;
+    border-radius: 18px;
+    background: #151a20;
+}
+
+.meal-add-bar .modern-select,
+.meal-add-bar .meal-name-input {
+    height: 52px;
+    border-color: #2a323d;
+    border-radius: 12px;
+    background: #0b0e11;
+    color: #f8fafc;
+    font-size: 16px;
+}
+
+.meal-add-bar .meal-name-input::placeholder {
+    color: #536176;
+}
+
+.meal-add-bar .toolbar-button {
+    min-width: 144px;
+    border-radius: 12px;
+    background: #4de0ae;
+    color: #07100d;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.meal-editor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 18px;
+}
+
+.meal-card-list .workout-day-editor {
+    padding: 0;
+    border-color: #29313b;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #1a1f27;
+}
+
+.meal-card-list .exercise-prescription-list {
+    gap: 0;
+}
+
+.meal-card-list .exercise-prescription {
+    gap: 20px;
+    padding: 22px 26px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.meal-card-list .exercise-prescription + .exercise-prescription {
+    border-top: 1px solid #272e37;
+}
+
+.meal-card-list .prescription-title {
+    padding-bottom: 17px;
+    border-bottom: 1px solid #252c35;
+}
+
+.meal-card-list .prescription-title > div {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.meal-slot-badge {
+    padding: 5px 10px;
+    border: 1px solid #2b3440;
+    border-radius: 7px;
+    background: #080b0e;
+    color: #9fb2cc;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.meal-card-list .prescription-title strong {
+    color: #f5f7fa;
+    font-size: 17px;
+}
+
+.meal-card-list .icon-btn {
+    color: #667384;
+}
+
+.meal-ingredient-editor {
+    gap: 4px;
+}
+
+.meal-ingredient-editor > div {
+    position: relative;
+    padding-left: 15px;
+}
+
+.meal-ingredient-editor > div::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #667384;
+}
+
+.meal-ingredient-editor input {
+    min-height: 36px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: #9fb2cc;
+    font-size: 16px;
+}
+
+.meal-ingredient-editor input:focus {
+    box-shadow: none;
+    outline: none;
+}
+
+.meal-add-ingredient {
+    margin-top: 7px;
+    padding: 9px 13px;
+    border: 1px dashed #35404d;
+    border-radius: 10px;
+    background: #0a0d11;
+    color: #9fb2cc;
+}
+
+.meal-macro-grid {
+    gap: 0;
+    padding: 15px 16px;
+    border-radius: 14px;
+    background: #080b0e;
+}
+
+.meal-macro-grid label {
+    padding: 0 10px;
+}
+
+.meal-macro-grid label > span {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.meal-macro-calories > span { color: #45e3ad; }
+.meal-macro-protein > span { color: #ff665b; }
+.meal-macro-carbs > span { color: #ffc542; }
+.meal-macro-fat > span { color: #6f8fff; }
+
+.meal-macro-grid input {
+    width: 100%;
+    min-height: 30px;
+    padding: 3px 0 0;
+    border: 0;
+    background: transparent;
+    color: #f8fafc;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.meal-card-list .form-row {
+    gap: 16px;
+}
+
+.meal-card-list .form-group label {
+    color: #69788c;
+    font-weight: 500;
+    text-transform: none;
+}
+
+.meal-card-list .form-group input {
+    min-height: 47px;
+    border-color: #29313b;
+    border-radius: 12px;
+    background: #0a0d10;
+}
+
+.meal-nutrition-panel {
+    display: grid;
+    gap: 20px;
+    padding: 22px 24px 24px;
+    border: 1px solid #29313b;
+    border-radius: 20px;
+    background: #151a20;
+}
+
+.meal-nutrition-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.meal-nutrition-head h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 17px;
+}
+
+.meal-nutrition-head > div {
+    display: flex;
+    padding: 3px;
+    border: 1px solid #2a323d;
+    border-radius: 9px;
+    background: #0b0e11;
+}
+
+.meal-nutrition-head button {
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #69788c;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.meal-nutrition-head button.active {
+    background: #1b222b;
+    color: #fff;
+}
+
+.meal-calorie-ring {
+    width: 184px;
+    height: 184px;
+    display: grid;
+    place-items: center;
+    margin: 2px auto 0;
+    border-radius: 50%;
+}
+
+.meal-calorie-ring > div {
+    width: 148px;
+    height: 148px;
+    display: grid;
+    place-content: center;
+    gap: 2px;
+    border-radius: 50%;
+    background: #151a20;
+    text-align: center;
+}
+
+.meal-calorie-ring strong {
+    color: #fff;
+    font-size: 36px;
+    line-height: 1;
+}
+
+.meal-calorie-ring span {
+    color: #718096;
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+
+.meal-target-progress {
+    margin: -6px 0 2px;
+    color: #9fb2cc;
+    font-size: 13px;
+    text-align: center;
+}
+
+.meal-nutrition-row {
+    display: grid;
+    gap: 7px;
+}
+
+.meal-nutrition-row > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.meal-nutrition-row span,
+.meal-nutrition-row strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f3f5f8;
+}
+
+.meal-nutrition-row i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.meal-nutrition-row strong {
+    color: #9fb2cc;
+    font-size: 14px;
+}
+
+.meal-nutrition-row strong small {
+    color: #5f6c7d;
+}
+
+.meal-nutrition-track {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: #26303c;
+}
+
+.meal-nutrition-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+@media (max-width: 1050px) {
+    .meal-editor-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .meal-nutrition-panel {
+        max-width: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .meal-day-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .meal-day-tabs button {
+        width: auto;
+    }
+
+    .meal-add-bar {
+        flex-direction: column;
+    }
+
+    .meal-add-bar > * {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .meal-card-list .exercise-prescription {
+        padding: 18px;
+    }
+}
+
 .exercise-combobox {
     position: relative;
     flex: 1;
