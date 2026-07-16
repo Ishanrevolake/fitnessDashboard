@@ -2,6 +2,7 @@
 
 import {
   BarChart2,
+  Camera,
   CheckCircle2,
   Dumbbell,
   Edit3,
@@ -9,7 +10,9 @@ import {
   MessageCircle,
   PlaySquare,
   Salad,
+  Scale,
   Send,
+  ShoppingBasket,
   Star,
   TrendingUp,
   Utensils,
@@ -276,6 +279,12 @@ function ClientDashboardHome({ userId, userName }: { userId: string; userName: s
   const [notes, setNotes] = useState<ClientNote[]>([]);
   const [mealPlan, setMealPlan] = useState<ClientMealPlan | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
+  const [selectedWorkoutDayId, setSelectedWorkoutDayId] = useState("");
+  const [selectedMealDay, setSelectedMealDay] = useState("");
+  const [shoppingVisible, setShoppingVisible] = useState(false);
+  const [checkedIngredients, setCheckedIngredients] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+  const [sentMessages, setSentMessages] = useState<string[]>([]);
 
   useEffect(() => {
     fetchClientNotes(userId)
@@ -293,6 +302,12 @@ function ClientDashboardHome({ userId, userName }: { userId: string; userName: s
   const assignedMealCount = visibleMealPlan?.days.reduce((total, day) => total + day.meals.length, 0) ?? 0;
   const assignedWorkoutCount = workoutPlan?.days?.reduce((total, day) => total + day.exercises.length, 0) ?? 0;
   const nextWorkoutDay = workoutPlan?.days?.find((day) => day.exercises.length > 0);
+  const workoutDays = workoutPlan?.days ?? [];
+  const mealDays = visibleMealPlan?.days ?? [];
+  const activeWorkoutDay = workoutDays.find((day) => day.id === selectedWorkoutDayId) ?? nextWorkoutDay ?? workoutDays[0];
+  const activeMealDay = mealDays.find((day) => day.day === selectedMealDay) ?? mealDays.find((day) => day.meals.length > 0);
+  const shoppingIngredients = Array.from(new Set(mealDays.flatMap((day) => day.meals.flatMap((meal) => meal.items))));
+  const weekDayFallbacks = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   return (
     <DashboardShell>
@@ -336,38 +351,67 @@ function ClientDashboardHome({ userId, userName }: { userId: string; userName: s
             </article>
           </section>
 
+          <section className="card client-dashboard-block">
+            <div className="client-section-heading">
+              <div className="client-section-icon"><Dumbbell size={20} /></div>
+              <div>
+                <div className="card-title">Workout Programme</div>
+                <p className="text-muted">{workoutPlan?.focus || "Your weekly training plan from your coach."}</p>
+              </div>
+              <Link className="client-section-link" href="/exercises">View all exercises</Link>
+            </div>
+            <div className="client-week-strip">
+              {workoutDays.length ? workoutDays.map((day, index) => {
+                const savedDayLabel = day.day?.trim();
+                const dayLabel = savedDayLabel && !/^day(?:\s*\d+)?$/i.test(savedDayLabel) ? savedDayLabel : (weekDayFallbacks[index] || `Day ${index + 1}`);
+                const hasExercises = day.exercises.length > 0;
+                return (
+                  <button className={`client-day-chip ${(activeWorkoutDay?.id === day.id) ? "active" : ""} ${hasExercises ? "has-workout" : "rest-day"}`} type="button" onClick={() => setSelectedWorkoutDayId(day.id)} key={day.id}>
+                    <span>{dayLabel.slice(0, 3)}</span>
+                    <strong>{hasExercises ? <Dumbbell size={14} /> : index + 1}</strong>
+                    <small>{hasExercises ? (day.title || `${day.exercises.length} exercises`) : "Plan pending"}</small>
+                  </button>
+                );
+              }) : <div className="client-empty-state"><Dumbbell size={22} /><div><strong>Your programme is being prepared</strong><span>Your trainer&apos;s weekly plan will appear here once assigned.</span></div></div>}
+            </div>
+            {activeWorkoutDay ? (
+              <div className="client-exercise-list">
+                <div className="client-workout-summary">
+                  <div><span>Up next</span><h4>{(() => { const index = Math.max(0, workoutDays.findIndex((day) => day.id === activeWorkoutDay.id)); const saved = activeWorkoutDay.day?.trim(); return saved && !/^day(?:\s*\d+)?$/i.test(saved) ? saved : weekDayFallbacks[index]; })()} · {activeWorkoutDay.title || "Training session"}</h4></div>
+                  <span className="status-pill">{activeWorkoutDay.exercises.length} {activeWorkoutDay.exercises.length === 1 ? "exercise" : "exercises"}</span>
+                </div>
+                {activeWorkoutDay.exercises.map((exercise) => (
+                  <div className="client-exercise-row" key={exercise.id}>
+                    <span className="client-exercise-check"><CheckCircle2 size={16} /></span>
+                    <div><strong>{exercise.name}</strong><small><b>{exercise.sets || "-"}</b> sets <i /> <b>{exercise.reps || "-"}</b> reps{exercise.rest ? <><i /> {exercise.rest} rest</> : null}</small></div>
+                    <span className="client-exercise-status">Ready</span>
+                  </div>
+                ))}
+                {!activeWorkoutDay.exercises.length ? <div className="client-empty-state compact"><CheckCircle2 size={21} /><div><strong>No exercises scheduled yet</strong><span>Your trainer is still building this session.</span></div></div> : null}
+              </div>
+            ) : null}
+          </section>
+
           <section className="admin-content-grid">
             <article className="card">
               <div className="card-title">
                 <Utensils size={18} /> Meal Plan
               </div>
-                <div className="admin-table">
-                {visibleMealPlan && assignedMealCount > 0 ? (
-                  visibleMealPlan.days
-                    .filter((day) => day.meals.length > 0)
-                    .slice(0, 3)
-                    .map((day) => (
-                      <div className="admin-table-row" key={day.id}>
-                        <div>
-                          <strong>{day.day}</strong>
-                          <span>{day.meals.map((meal) => `${meal.mealTime}: ${meal.name}`).join(", ")}</span>
-                        </div>
-                        <span className="status-pill">Active</span>
-                        <Link className="text-link" href="/meal-plans">
-                          View plan
-                        </Link>
-                      </div>
-                    ))
-                ) : (
+              {assignedMealCount > 0 ? <div className="client-meal-tabs">{mealDays.map((day) => <button className={activeMealDay?.id === day.id ? "active" : ""} type="button" onClick={() => setSelectedMealDay(day.day)} key={day.id}>{day.day.slice(0, 3)}</button>)}</div> : null}
+              <div className="admin-table">
+                {activeMealDay?.meals.length ? activeMealDay.meals.map((meal) => (
+                  <div className="admin-table-row client-meal-row" key={meal.id}>
+                    <div><strong>{meal.mealTime} - {meal.name}</strong><span>{meal.items.join(", ") || meal.notes}</span></div>
+                    {meal.calories ? <span className="status-pill">{meal.calories} kcal</span> : null}
+                  </div>
+                )) : (
                   <div className="admin-table-row">
                     <div>
                       <strong>No meal plan assigned yet</strong>
                       <span>Your trainer has not assigned meals to this account.</span>
                     </div>
                     <span className="status-pill">Pending</span>
-                    <Link className="text-link" href="/meal-plans">
-                      Check meals
-                    </Link>
+                    <Link className="text-link" href="/meal-plans">Check meals</Link>
                   </div>
                 )}
               </div>
@@ -375,36 +419,16 @@ function ClientDashboardHome({ userId, userName }: { userId: string; userName: s
 
             <aside className="card">
               <div className="card-title">
-                <Dumbbell size={18} /> Exercises
+                <ShoppingBasket size={18} /> Shopping List
               </div>
-                <div className="admin-progress-list">
-                {nextWorkoutDay ? (
-                  <div className="admin-progress-item">
-                    <div>
-                      <strong>{nextWorkoutDay.title}</strong>
-                      <span>
-                        {nextWorkoutDay.day} - {nextWorkoutDay.exercises.length} exercises
-                      </span>
-                    </div>
-                    <div className="progress-track">
-                      <div className="progress-fill" style={{ width: "75%" }} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="admin-progress-item">
-                    <div>
-                      <strong>No exercises assigned yet</strong>
-                      <span>Your trainer has not assigned exercises to this account.</span>
-                    </div>
-                    <div className="progress-track">
-                      <div className="progress-fill" style={{ width: "0%" }} />
-                    </div>
-                  </div>
-                )}
-                <Link className="btn-secondary link-button quick-action-link" href="/exercises">
-                  View Exercise List
-                </Link>
-              </div>
+              <p className="text-muted client-dashboard-description">Generated from this week&apos;s assigned meal plan.</p>
+              <button className="btn-secondary client-dashboard-action" type="button" onClick={() => setShoppingVisible(true)}>Generate this week&apos;s list</button>
+              {shoppingVisible ? <div className="client-shopping-list">{shoppingIngredients.length ? shoppingIngredients.map((ingredient) => (
+                <label className={checkedIngredients.includes(ingredient) ? "checked" : ""} key={ingredient}>
+                  <input type="checkbox" checked={checkedIngredients.includes(ingredient)} onChange={() => setCheckedIngredients((current) => current.includes(ingredient) ? current.filter((item) => item !== ingredient) : [...current, ingredient])} />
+                  <span>{ingredient}</span>
+                </label>
+              )) : <span className="text-muted">No ingredients are available yet.</span>}</div> : null}
             </aside>
 
             <article className="card">
@@ -427,6 +451,31 @@ function ClientDashboardHome({ userId, userName }: { userId: string; userName: s
                 <span className="text-muted">No trainer notes yet.</span>
               )}
             </article>
+          </section>
+
+          <section className="admin-content-grid client-dashboard-secondary-grid">
+            <article className="card">
+              <div className="card-title"><Scale size={18} /> Measurements</div>
+              <div className="client-measurement-grid">
+                <div><span>Weight</span><strong>78.4 kg</strong><small>Down 1.4 kg this month</small><div className="client-trend-line"><span style={{ width: "72%" }} /></div></div>
+                <div><span>Waist</span><strong>84.5 cm</strong><small>Down 2.0 cm in 6 weeks</small><div className="client-trend-line"><span style={{ width: "64%" }} /></div></div>
+              </div>
+              <p className="text-muted client-dashboard-footnote">Measurement logging will appear here when tracking is connected to the client profile.</p>
+            </article>
+
+            <article className="card">
+              <div className="card-title"><Camera size={18} /> Progress Photos</div>
+              <div className="client-photo-grid">{["Front", "Side", "Back", "Optional"].map((label) => <label className="client-photo-slot" key={label}><Camera size={20} /><strong>{label}</strong><span>Upload photo</span><input type="file" accept="image/*" /></label>)}</div>
+            </article>
+          </section>
+
+          <section className="card client-dashboard-block">
+            <div className="card-title"><MessageCircle size={18} /> Message Your Trainer</div>
+            <div className="client-chat-box">
+              <div className="client-chat-coach">Welcome back! Send me a message if you need a session or meal swap.</div>
+              {sentMessages.map((item, index) => <div className="client-chat-message" key={`${item}-${index}`}>{item}</div>)}
+            </div>
+            <div className="client-chat-compose"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ask about today's session, a swap, or anything else..." /><button className="btn-secondary" type="button" onClick={() => { if (!message.trim()) return; setSentMessages((current) => [...current, message.trim()]); setMessage(""); }}><Send size={16} /> Send</button></div>
           </section>
         </main>
       </div>
