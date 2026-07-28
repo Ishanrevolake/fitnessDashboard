@@ -41,8 +41,22 @@ type ClientNoteRecord = {
   created_at: string;
 };
 
+type ClientMeasurementRecord = {
+  client_id?: string;
+  measured_on?: string;
+  created_at?: string;
+  body_weight_kg?: number | null;
+  waist_cm?: number | null;
+};
+
+type ProgressPhotoRecord = {
+  client_id?: string;
+  storage_path?: string;
+};
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_KEY;
+const progressPhotosBucket = process.env.SUPABASE_PROGRESS_PHOTOS_BUCKET ?? "progress-photos";
 
 function getMetadataText(metadata: Record<string, unknown> | undefined, keys: string[]) {
   for (const key of keys) {
@@ -65,6 +79,12 @@ function getProfileText(user: User, profile: ProfileRecord | undefined, keys: st
 function formatMeasurement(value: string, unit: string) {
   if (!value) return "";
   return unit && !value.toLowerCase().includes(unit.toLowerCase()) ? `${value} ${unit}` : value;
+}
+
+function getProgressPhotoPath(storagePath: string) {
+  const cleanPath = storagePath.replace(/^\/+/, "");
+  const bucketPrefix = `${progressPhotosBucket}/`;
+  return cleanPath.startsWith(bucketPrefix) ? cleanPath.slice(bucketPrefix.length) : cleanPath;
 }
 
 function getUserRole(user: User) {
@@ -161,6 +181,8 @@ function mapUserToClient(
   workoutPlanRecord?: WorkoutPlanRecord,
   mealPlanRecord?: MealPlanRecord,
   notes: ClientNoteRecord[] = [],
+  latestMeasurement?: ClientMeasurementRecord,
+  photos: string[] = [],
 ): FitnessClient {
   const packageId = getPackageId(
     packageSelection?.package_id ??
@@ -189,18 +211,18 @@ function mapUserToClient(
         getProfileText(user, profile, ["height_unit"]) || (getProfileText(user, profile, ["height_cm"]) ? "cm" : ""),
       ),
       weight: formatMeasurement(
-        getProfileText(user, profile, ["weight", "weight_kg", "body_weight"]),
-        getProfileText(user, profile, ["weight_unit"]) || (getProfileText(user, profile, ["weight_kg", "body_weight"]) ? "kg" : ""),
+        latestMeasurement?.body_weight_kg != null ? String(latestMeasurement.body_weight_kg) : "",
+        "kg",
       ),
       waist: formatMeasurement(
-        getProfileText(user, profile, ["waist", "waist_cm"]),
-        getProfileText(user, profile, ["waist_unit"]) || (getProfileText(user, profile, ["waist_cm"]) ? "cm" : ""),
+        latestMeasurement?.waist_cm != null ? String(latestMeasurement.waist_cm) : "",
+        "cm",
       ),
       activityLevel: getProfileText(user, profile, ["activity_level", "activityLevel", "training_experience", "experience"]),
       injuries: getProfileText(user, profile, ["injuries", "injury_history", "limitations", "medical_notes"]),
     },
     notes: notes.map(mapRecordToNote),
-    photos: [],
+    photos,
     metrics: defaultMetrics,
     workoutPlan: mapPlanRecordToWorkoutPlan(workoutPlanRecord),
     mealPlan: mapRecordToMealPlan(mealPlanRecord),
@@ -241,6 +263,8 @@ export async function GET() {
   const workoutPlansByUserId = new Map<string, WorkoutPlanRecord>();
   const mealPlansByUserId = new Map<string, MealPlanRecord>();
   const notesByUserId = new Map<string, ClientNoteRecord[]>();
+  const latestMeasurementByUserId = new Map<string, ClientMeasurementRecord>();
+  const photosByUserId = new Map<string, string[]>();
 
   if (userIds.length > 0) {
     const { data: profiles } = await supabase.from("profiles").select("*").in("id", userIds);
@@ -296,6 +320,44 @@ export async function GET() {
 
       notesByUserId.set(typedNote.client_id, [...(notesByUserId.get(typedNote.client_id) ?? []), typedNote]);
     });
+
+    const { data: measurements } = await supabase
+      .from("progress_measurements")
+      .select("client_id,measured_on,created_at,body_weight_kg,waist_cm")
+      .in("client_id", userIds)
+      .order("measured_on", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    (measurements ?? []).forEach((measurement) => {
+      const typedMeasurement = measurement as ClientMeasurementRecord;
+      if (typedMeasurement.client_id && !latestMeasurementByUserId.has(typedMeasurement.client_id)) {
+        latestMeasurementByUserId.set(typedMeasurement.client_id, typedMeasurement);
+      }
+    });
+
+    const { data: progressPhotos } = await supabase
+      .from("progress_photos")
+      .select("client_id,storage_path")
+      .in("client_id", userIds)
+      .order("captured_on", { ascending: false });
+
+    const signedProgressPhotos = await Promise.all(
+      (progressPhotos ?? []).map(async (photo) => {
+        const typedPhoto = photo as ProgressPhotoRecord;
+        if (!typedPhoto.client_id || !typedPhoto.storage_path) return null;
+
+        const { data: signedPhoto } = await supabase.storage
+          .from(progressPhotosBucket)
+          .createSignedUrl(getProgressPhotoPath(typedPhoto.storage_path), 60 * 60);
+
+        return signedPhoto?.signedUrl ? { clientId: typedPhoto.client_id, url: signedPhoto.signedUrl } : null;
+      }),
+    );
+
+    signedProgressPhotos.forEach((photo) => {
+      if (!photo) return;
+      photosByUserId.set(photo.clientId, [...(photosByUserId.get(photo.clientId) ?? []), photo.url]);
+    });
   }
 
   return Response.json(
@@ -307,6 +369,8 @@ export async function GET() {
         workoutPlansByUserId.get(user.id),
         mealPlansByUserId.get(user.id),
         notesByUserId.get(user.id) ?? [],
+        latestMeasurementByUserId.get(user.id),
+        photosByUserId.get(user.id) ?? [],
       ),
     ),
   );

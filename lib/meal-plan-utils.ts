@@ -42,6 +42,17 @@ export function normalizeMealPlanDays(days?: MealPlanDay[]) {
       meals: meals.map((meal) => ({
         ...meal,
         items: Array.isArray(meal.items) ? [...meal.items] : [],
+        foods: Array.isArray(meal.foods) ? meal.foods.map((food) => ({
+          ...food,
+          grams: Number(food.grams) || 0,
+          calories: Number(food.calories) || 0,
+          protein: Number(food.protein) || 0,
+          carbs: Number(food.carbs) || 0,
+          fat: Number(food.fat) || 0,
+          fiber: Number(food.fiber) || 0,
+          sugar: Number(food.sugar) || 0,
+          sodium: Number(food.sodium) || 0,
+        })) : [],
         calories: Number(meal.calories) || 0,
         protein: Number(meal.protein) || 0,
         carbs: Number(meal.carbs) || 0,

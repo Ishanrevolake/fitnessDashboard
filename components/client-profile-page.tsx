@@ -7,6 +7,7 @@ import {
   Camera,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   Dumbbell,
   Edit3,
   FileText,
@@ -17,7 +18,6 @@ import {
   MoreVertical,
   Phone,
   Plus,
-  PlusCircle,
   Ruler,
   Scale,
   Search,
@@ -34,10 +34,11 @@ import { Toast } from "@/components/toast";
 import { addClientNoteViaApi, fetchClientMealPlan, fetchClientNotes, fetchClients, updateClientMealPlanViaApi, updateClientWorkoutPlanViaApi } from "@/lib/api-client";
 import { addClientNote, getStoredClients, updateClientMealPlan, updateClientWorkoutPlan } from "@/lib/client-store";
 import { exerciseLibrary } from "@/lib/exercise-library";
+import { foodLibrary } from "@/lib/food-library";
 import { normalizeClientMealPlan, normalizeMealPlanDays } from "@/lib/meal-plan-utils";
 import { getPackageLabel } from "@/lib/mock-data";
 import { getStoredPrograms } from "@/lib/program-store";
-import type { AssignedExercise, AssignedMeal, ClientMealPlan, FitnessClient, MealPlanDay, ProgramTemplate, WorkoutDay, WorkoutPlan } from "@/lib/types";
+import type { AssignedExercise, AssignedMeal, ClientMealPlan, FitnessClient, MealFoodItem, MealPlanDay, ProgramTemplate, WorkoutDay, WorkoutPlan } from "@/lib/types";
 
 type ClientProfilePageProps = {
   clientId?: string;
@@ -245,7 +246,7 @@ export function ClientProfilePage({ clientId, initialTab }: ClientProfilePagePro
     { label: "Meal Plan", href: "#meal-plan" },
     { label: "Workout Plan", href: "#workout-plan" },
   ];
-  const latestWeight = client.profile.weight || `${client.metrics.weight.at(-1) ?? "-"} kg`;
+  const latestWeight = client.profile.weight || "Not added";
   const profileMetrics = [
     { label: "Weight", value: latestWeight },
     { label: "Height", value: client.profile.height || "Not added" },
@@ -355,14 +356,39 @@ export function ClientProfilePage({ clientId, initialTab }: ClientProfilePagePro
                     )}
                   </section>
 
+                  <section className="card measurements-profile-card">
+                    <div className="card-title">
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                        <Scale size={18} style={{ color: "#14DDBA" }} /> Measurements
+                      </span>
+                    </div>
+                    <div className="overview-measurements-grid">
+                      <div className="overview-measurement">
+                        <span className="overview-measurement-icon">
+                          <Scale size={20} />
+                        </span>
+                        <div>
+                          <span>Weight</span>
+                          <strong>{latestWeight}</strong>
+                        </div>
+                      </div>
+                      <div className="overview-measurement">
+                        <span className="overview-measurement-icon">
+                          <Ruler size={20} />
+                        </span>
+                        <div>
+                          <span>Waist</span>
+                          <strong>{client.profile.waist || "Not added"}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
                   <section className="card gallery-profile-card">
-                    <div className="card-title split-title">
+                    <div className="card-title">
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                         <Camera size={18} style={{ color: "#0EA5E9" }} /> Progress Gallery
                       </span>
-                      <button className="icon-btn" type="button" aria-label="Add progress photo">
-                        <PlusCircle size={18} />
-                      </button>
                     </div>
                     <div className="gallery-grid">
                       {client.photos.map((photo) => (
@@ -371,6 +397,7 @@ export function ClientProfilePage({ clientId, initialTab }: ClientProfilePagePro
                         </button>
                       ))}
                     </div>
+                    {!client.photos.length ? <div className="empty-state compact-empty">No progress photos yet.</div> : null}
                   </section>
                 </div>
               ) : null}
@@ -736,6 +763,7 @@ function WorkoutPlanModal({
   const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseLibrary[0]?.id ?? "");
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
+  const [plannerView, setPlannerView] = useState<"day" | "week" | "month">("day");
   const filteredExerciseOptions = useMemo(() => {
     const query = exerciseSearch.trim().toLowerCase();
     if (!query) return exerciseLibrary;
@@ -745,6 +773,7 @@ function WorkoutPlanModal({
     );
   }, [exerciseSearch]);
   const selectedExercise = exerciseLibrary.find((exercise) => exercise.id === selectedExerciseId);
+  const activeWorkoutDay = days.find((day) => day.id === selectedDayId) ?? days[0];
 
   useEffect(() => {
     if (!open) return;
@@ -758,6 +787,7 @@ function WorkoutPlanModal({
     setSelectedExerciseId(exerciseLibrary[0]?.id ?? "");
     setExerciseSearch("");
     setExercisePickerOpen(false);
+    setPlannerView("day");
   }, [client, open]);
 
   useEffect(() => {
@@ -810,6 +840,13 @@ function WorkoutPlanModal({
     setDays((current) =>
       current.map((day) => (day.id === dayId ? { ...day, exercises: [...day.exercises, assignedExercise] } : day)),
     );
+  }
+
+  function selectAdjacentDay(direction: -1 | 1) {
+    if (!days.length) return;
+    const currentIndex = Math.max(0, days.findIndex((day) => day.id === activeWorkoutDay?.id));
+    const nextIndex = (currentIndex + direction + days.length) % days.length;
+    setSelectedDayId(days[nextIndex].id);
   }
 
   function updateExercise(dayId: string, exerciseId: string, field: keyof AssignedExercise, value: string) {
@@ -865,7 +902,10 @@ function WorkoutPlanModal({
     <div className={`modal-overlay ${open ? "active" : ""}`} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-content workout-modal-content" role="dialog" aria-modal="true" aria-labelledby="workout-plan-title">
         <div className="modal-header">
-          <h2 id="workout-plan-title">Edit Workout Plan</h2>
+          <div className="workout-planner-heading">
+            <span className="workout-planner-mark"><Dumbbell size={19} /></span>
+            <div><h2 id="workout-plan-title">Training Plan</h2><span>Editing {client.name}&apos;s workout programme</span></div>
+          </div>
           <button className="close-modal icon-btn" type="button" onClick={onClose} aria-label="Close workout plan modal">
             <X size={20} />
           </button>
@@ -891,15 +931,36 @@ function WorkoutPlanModal({
           <div className="workout-builder">
             <div className="builder-header">
               <div>
-                <label>Workout Days</label>
-                <span className="text-muted">Build the client plan day by day, then add exercises set by set.</span>
+                <label>Weekly Schedule</label>
+                <span className="text-muted">Choose a day, then build the session exercise by exercise.</span>
               </div>
               <button className="btn-secondary inline-button" type="button" onClick={addDay}>
                 <Plus size={14} /> Add Day
               </button>
             </div>
 
-            <div className="exercise-add-row">
+            <div className="workout-planner-controls">
+              <div className="planner-date-nav">
+                <button className="icon-btn" type="button" onClick={() => selectAdjacentDay(-1)} aria-label="Previous workout day"><ChevronLeft size={18} /></button>
+                <div><strong>{activeWorkoutDay?.day || "Workout day"}</strong><span>{activeWorkoutDay?.title || "New session"}</span></div>
+                <button className="icon-btn" type="button" onClick={() => selectAdjacentDay(1)} aria-label="Next workout day"><ChevronRight size={18} /></button>
+                <button className="planner-today-button" type="button" onClick={() => setSelectedDayId(days[0]?.id ?? "")}>First day</button>
+              </div>
+              <div className="planner-control-actions">
+                <div className="planner-view-switch" role="tablist" aria-label="Planner view">
+                  {(["day", "week", "month"] as const).map((view) => <button className={plannerView === view ? "active" : ""} type="button" role="tab" aria-selected={plannerView === view} onClick={() => setPlannerView(view)} key={view}>{view}</button>)}
+                </div>
+                <button className="btn-primary planner-add-exercise" type="button" onClick={() => setExercisePickerOpen(true)}><Plus size={15} /> Add exercise</button>
+              </div>
+            </div>
+
+            {plannerView === "day" ? <>
+            <label className="planner-session-notes" htmlFor="trainerNotesInline">
+              <span><FileText size={14} /> Session notes</span>
+              <textarea id="trainerNotesInline" rows={2} value={trainerNotes} onChange={(event) => setTrainerNotes(event.target.value)} placeholder="Add coaching cues, restrictions, or progression notes for this plan..." />
+            </label>
+
+            <div className={`exercise-add-row ${exercisePickerOpen ? "picker-active" : ""}`}>
               <select className="modern-select" value={selectedDayId} onChange={(event) => setSelectedDayId(event.target.value)}>
                 {days.map((day) => (
                   <option key={day.id} value={day.id}>
@@ -964,7 +1025,7 @@ function WorkoutPlanModal({
             </div>
 
             <div className="workout-day-editor-list">
-              {days.map((day) => (
+              {days.filter((day) => day.id === activeWorkoutDay?.id).map((day) => (
                 <div className="workout-day-editor" key={day.id}>
                   <div className="day-editor-header">
                     <div className="form-row day-title-row">
@@ -1028,9 +1089,14 @@ function WorkoutPlanModal({
                 </div>
               ))}
             </div>
+            </> : null}
+
+            {plannerView === "week" ? <div className="planner-week-grid">{days.map((day, index) => <button className={day.id === activeWorkoutDay?.id ? "active" : ""} type="button" onClick={() => { setSelectedDayId(day.id); setPlannerView("day"); }} key={day.id}><span>Day {index + 1}</span><h3>{day.day}</h3><strong>{day.title}</strong><small>{day.exercises.length ? `${day.exercises.length} exercises` : "Rest / unplanned"}</small>{day.exercises.slice(0, 3).map((exercise) => <em key={exercise.id}>{exercise.name}</em>)}</button>)}</div> : null}
+
+            {plannerView === "month" ? <div className="planner-month-view"><div className="planner-month-head">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <span key={day}>{day}</span>)}</div><div className="planner-month-grid">{Array.from({ length: 28 }, (_, index) => { const planDay = days[index % Math.max(days.length, 1)]; return <button type="button" onClick={() => { if (planDay) setSelectedDayId(planDay.id); setPlannerView("day"); }} key={index}><b>{index + 1}</b>{planDay?.exercises.length ? <><i /><strong>{planDay.title}</strong><small>{planDay.exercises.length} exercises</small></> : <small>Rest</small>}</button>; })}</div></div> : null}
           </div>
 
-          <div className="form-group">
+          <div className="form-group workout-trainer-notes-field">
             <label htmlFor="trainerNotes">Trainer Notes</label>
             <textarea
               id="trainerNotes"
@@ -1057,6 +1123,29 @@ function WorkoutPlanModal({
 
 function getEditableMealDays(mealPlan?: ClientMealPlan): MealPlanDay[] {
   return normalizeMealPlanDays(mealPlan?.days);
+}
+
+function roundNutrition(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function calculateMealFromFoods(meal: AssignedMeal, foods: MealFoodItem[]): AssignedMeal {
+  const totals = foods.reduce((sum, food) => ({
+    calories: sum.calories + food.calories,
+    protein: sum.protein + food.protein,
+    carbs: sum.carbs + food.carbs,
+    fat: sum.fat + food.fat,
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+  return {
+    ...meal,
+    foods,
+    items: foods.map((food) => `${food.grams}g ${food.name} (${food.basis})`),
+    calories: roundNutrition(totals.calories),
+    protein: roundNutrition(totals.protein),
+    carbs: roundNutrition(totals.carbs),
+    fat: roundNutrition(totals.fat),
+  };
 }
 
 function MealPlanModal({
@@ -1112,7 +1201,8 @@ function MealPlanModal({
       mealId: "",
       name,
       mealTime,
-      items: [""],
+      items: [],
+      foods: [],
       notes: "",
       calories: 0,
       protein: 0,
@@ -1128,6 +1218,55 @@ function MealPlanModal({
     setFormError("");
     setMealName("");
     if (dayId !== "every-day") setActiveDayId(dayId);
+  }
+
+  function createFoodPortion(foodId: string, grams: number, id = `food-${Date.now()}-${Math.random().toString(36).slice(2)}`): MealFoodItem {
+    const food = foodLibrary.find((item) => item.id === foodId) ?? foodLibrary[0];
+    const portion = Math.max(0, grams) / 100;
+
+    return {
+      id,
+      foodId: food.id,
+      name: food.name,
+      basis: food.basis,
+      grams: Math.max(0, grams),
+      calories: roundNutrition(food.calories * portion),
+      protein: roundNutrition(food.protein * portion),
+      carbs: roundNutrition(food.carbs * portion),
+      fat: roundNutrition(food.fat * portion),
+      fiber: roundNutrition(food.fiber * portion),
+      sugar: roundNutrition(food.sugar * portion),
+      sodium: roundNutrition(food.sodium * portion),
+    };
+  }
+
+  function addFood(dayId: string, mealId: string) {
+    setDays((current) => current.map((day) => day.id === dayId ? {
+      ...day,
+      meals: day.meals.map((meal) => meal.id === mealId
+        ? calculateMealFromFoods(meal, [...(meal.foods ?? []), createFoodPortion(foodLibrary[0].id, 100)])
+        : meal),
+    } : day));
+  }
+
+  function updateFood(dayId: string, mealId: string, foodRowId: string, foodId: string, grams: number) {
+    setDays((current) => current.map((day) => day.id === dayId ? {
+      ...day,
+      meals: day.meals.map((meal) => {
+        if (meal.id !== mealId) return meal;
+        const foods = (meal.foods ?? []).map((food) => food.id === foodRowId ? createFoodPortion(foodId, grams, food.id) : food);
+        return calculateMealFromFoods(meal, foods);
+      }),
+    } : day));
+  }
+
+  function removeFood(dayId: string, mealId: string, foodRowId: string) {
+    setDays((current) => current.map((day) => day.id === dayId ? {
+      ...day,
+      meals: day.meals.map((meal) => meal.id === mealId
+        ? calculateMealFromFoods(meal, (meal.foods ?? []).filter((food) => food.id !== foodRowId))
+        : meal),
+    } : day));
   }
 
   function updateMeal(dayId: string, mealId: string, field: keyof AssignedMeal, value: string) {
@@ -1310,13 +1449,41 @@ function MealPlanModal({
                             </button>
                           </div>
                           <div className="meal-recipe-lines meal-ingredient-editor">
-                            {meal.items.map((item, index) => (
-                              <div key={`${meal.id}-ingredient-${index}`}><input value={item} placeholder="Ingredient / portion" onChange={(event) => updateIngredient(day.id, meal.id, index, event.target.value)} /><button type="button" className="icon-btn" onClick={() => removeIngredient(day.id, meal.id, index)} aria-label="Remove ingredient"><X size={14} /></button></div>
+                            {(meal.foods ?? []).map((food) => (
+                              <div className="meal-food-row" key={food.id}>
+                                <select
+                                  className="modern-select"
+                                  aria-label="Food"
+                                  value={food.foodId}
+                                  onChange={(event) => updateFood(day.id, meal.id, food.id, event.target.value, food.grams)}
+                                >
+                                  {foodLibrary.map((option) => (
+                                    <option key={option.id} value={option.id}>{option.name} — {option.basis}</option>
+                                  ))}
+                                </select>
+                                <label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={food.grams}
+                                    aria-label={`${food.name} grams`}
+                                    onChange={(event) => updateFood(day.id, meal.id, food.id, food.foodId, Number(event.target.value))}
+                                  />
+                                  <span>g</span>
+                                </label>
+                                <small>{food.calories} kcal</small>
+                                <button type="button" className="icon-btn" onClick={() => removeFood(day.id, meal.id, food.id)} aria-label={`Remove ${food.name}`}><X size={14} /></button>
+                              </div>
                             ))}
-                            <button type="button" className="meal-add-ingredient" onClick={() => addIngredient(day.id, meal.id)}><Plus size={13} /> Add ingredient</button>
+                            <button type="button" className="meal-add-food" onClick={() => addFood(day.id, meal.id)}><Plus size={13} /> Add food from nutrition library</button>
+                            {meal.items.map((item, index) => (
+                              !(meal.foods?.length) ? <div key={`${meal.id}-ingredient-${index}`}><input value={item} placeholder="Custom ingredient / portion" onChange={(event) => updateIngredient(day.id, meal.id, index, event.target.value)} /><button type="button" className="icon-btn" onClick={() => removeIngredient(day.id, meal.id, index)} aria-label="Remove ingredient"><X size={14} /></button></div> : null
+                            ))}
+                            {!(meal.foods?.length) ? <button type="button" className="meal-add-ingredient" onClick={() => addIngredient(day.id, meal.id)}><Plus size={13} /> Add custom ingredient</button> : null}
                           </div>
                           <div className="meal-macro-grid">
-                            {([['calories', 'Calories'], ['protein', 'Protein (g)'], ['carbs', 'Carbs (g)'], ['fat', 'Fat (g)']] as const).map(([field, label]) => <label key={field} className={`meal-macro-${field}`}><span>{label}</span><input type="number" min="0" value={meal[field] ?? 0} onChange={(event) => updateMeal(day.id, meal.id, field, event.target.value)} /></label>)}
+                            {([['calories', 'Calories'], ['protein', 'Protein (g)'], ['carbs', 'Carbs (g)'], ['fat', 'Fat (g)']] as const).map(([field, label]) => <label key={field} className={`meal-macro-${field}`}><span>{label}</span><input type="number" min="0" value={meal[field] ?? 0} readOnly={Boolean(meal.foods?.length)} onChange={(event) => updateMeal(day.id, meal.id, field, event.target.value)} /></label>)}
                           </div>
                           <div className="form-row">
                             <div className="form-group">

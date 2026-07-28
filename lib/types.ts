@@ -86,12 +86,28 @@ export type MealLibraryItem = {
   notes: string;
 };
 
+export type MealFoodItem = {
+  id: string;
+  foodId: string;
+  name: string;
+  basis: string;
+  grams: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sugar: number;
+  sodium: number;
+};
+
 export type AssignedMeal = {
   id: string;
   mealId: string;
   name: string;
   mealTime: string;
   items: string[];
+  foods?: MealFoodItem[];
   notes: string;
   calories?: number;
   protein?: number;
