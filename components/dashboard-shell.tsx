@@ -14,7 +14,6 @@ import {
   MessageSquareText,
   PanelLeftClose,
   PanelLeftOpen,
-  PenLine,
   Phone,
   Settings,
   SlidersHorizontal,
@@ -77,7 +76,6 @@ const navGroups: NavGroup[] = [
     id: "content",
     label: "Content",
     children: [
-      { label: "Blog Posts", href: "/blog-posts", icon: PenLine },
       { label: "Testimonials", href: "/testimonials", icon: SquareLibrary },
       { label: "Meal Plans", href: "/recipes", icon: Utensils },
     ],
