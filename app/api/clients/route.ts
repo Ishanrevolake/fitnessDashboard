@@ -49,6 +49,18 @@ type ClientMeasurementRecord = {
   waist_cm?: number | null;
 };
 
+type OnboardingSubmissionRecord = {
+  user_id?: string;
+  age?: number | null;
+  gender?: string | null;
+  height_cm?: number | null;
+  current_weight_kg?: number | null;
+  experience_level?: string | null;
+  primary_goal?: string | null;
+  injuries?: string | null;
+  created_at?: string;
+};
+
 type ProgressPhotoRecord = {
   client_id?: string;
   storage_path?: string;
@@ -182,6 +194,7 @@ function mapUserToClient(
   mealPlanRecord?: MealPlanRecord,
   notes: ClientNoteRecord[] = [],
   latestMeasurement?: ClientMeasurementRecord,
+  onboarding?: OnboardingSubmissionRecord,
   photos: string[] = [],
 ): FitnessClient {
   const packageId = getPackageId(
@@ -200,26 +213,41 @@ function mapUserToClient(
     packageId,
     packageName: packageSelection?.package_title || getMetadataText(user.user_metadata, ["package_title", "packageName"]),
     daysLeft: getDaysLeft(packageSelection),
-    goal: getProfileText(user, profile, ["goal", "fitness_goal", "primary_goal"]) || "No goal added yet.",
+    goal:
+      getProfileText(user, profile, ["goal", "fitness_goal", "primary_goal"]) ||
+      onboarding?.primary_goal ||
+      "No goal added yet.",
     timezone: getProfileText(user, profile, ["timezone", "time_zone"]) || "Not set",
     profile: {
-      gender: getProfileText(user, profile, ["gender", "sex"]),
-      age: getProfileText(user, profile, ["age"]),
+      gender: getProfileText(user, profile, ["gender", "sex"]) || onboarding?.gender || "",
+      age: getProfileText(user, profile, ["age"]) || (onboarding?.age != null ? String(onboarding.age) : ""),
       dateOfBirth: getProfileText(user, profile, ["date_of_birth", "dob", "birthdate"]),
       height: formatMeasurement(
-        getProfileText(user, profile, ["height", "height_cm", "height_inches", "height_in"]),
-        getProfileText(user, profile, ["height_unit"]) || (getProfileText(user, profile, ["height_cm"]) ? "cm" : ""),
+        getProfileText(user, profile, ["height", "height_cm", "height_inches", "height_in"]) ||
+          (onboarding?.height_cm != null ? String(onboarding.height_cm) : ""),
+        getProfileText(user, profile, ["height_unit"]) ||
+          (getProfileText(user, profile, ["height_cm"]) || onboarding?.height_cm != null ? "cm" : ""),
       ),
       weight: formatMeasurement(
-        latestMeasurement?.body_weight_kg != null ? String(latestMeasurement.body_weight_kg) : "",
+        latestMeasurement?.body_weight_kg != null
+          ? String(latestMeasurement.body_weight_kg)
+          : onboarding?.current_weight_kg != null
+            ? String(onboarding.current_weight_kg)
+            : "",
         "kg",
       ),
       waist: formatMeasurement(
         latestMeasurement?.waist_cm != null ? String(latestMeasurement.waist_cm) : "",
         "cm",
       ),
-      activityLevel: getProfileText(user, profile, ["activity_level", "activityLevel", "training_experience", "experience"]),
-      injuries: getProfileText(user, profile, ["injuries", "injury_history", "limitations", "medical_notes"]),
+      activityLevel:
+        getProfileText(user, profile, ["activity_level", "activityLevel", "training_experience", "experience"]) ||
+        onboarding?.experience_level ||
+        "",
+      injuries:
+        getProfileText(user, profile, ["injuries", "injury_history", "limitations", "medical_notes"]) ||
+        onboarding?.injuries ||
+        "",
     },
     notes: notes.map(mapRecordToNote),
     photos,
@@ -264,6 +292,7 @@ export async function GET() {
   const mealPlansByUserId = new Map<string, MealPlanRecord>();
   const notesByUserId = new Map<string, ClientNoteRecord[]>();
   const latestMeasurementByUserId = new Map<string, ClientMeasurementRecord>();
+  const onboardingByUserId = new Map<string, OnboardingSubmissionRecord>();
   const photosByUserId = new Map<string, string[]>();
 
   if (userIds.length > 0) {
@@ -273,6 +302,19 @@ export async function GET() {
       const typedProfile = profile as ProfileRecord;
       const profileUserId = typedProfile.id || typedProfile.user_id;
       if (profileUserId) profilesByUserId.set(profileUserId, typedProfile);
+    });
+
+    const { data: onboardingSubmissions } = await supabase
+      .from("onboarding_submissions")
+      .select("user_id,age,gender,height_cm,current_weight_kg,experience_level,primary_goal,injuries,created_at")
+      .in("user_id", userIds)
+      .order("created_at", { ascending: false });
+
+    (onboardingSubmissions ?? []).forEach((submission) => {
+      const typedSubmission = submission as OnboardingSubmissionRecord;
+      if (typedSubmission.user_id && !onboardingByUserId.has(typedSubmission.user_id)) {
+        onboardingByUserId.set(typedSubmission.user_id, typedSubmission);
+      }
     });
 
     const { data: selections } = await supabase
@@ -370,6 +412,7 @@ export async function GET() {
         mealPlansByUserId.get(user.id),
         notesByUserId.get(user.id) ?? [],
         latestMeasurementByUserId.get(user.id),
+        onboardingByUserId.get(user.id),
         photosByUserId.get(user.id) ?? [],
       ),
     ),
