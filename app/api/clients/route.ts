@@ -196,6 +196,7 @@ function mapUserToClient(
   latestMeasurement?: ClientMeasurementRecord,
   onboarding?: OnboardingSubmissionRecord,
   photos: string[] = [],
+  hasVerifiedPayment = false,
 ): FitnessClient {
   const packageId = getPackageId(
     packageSelection?.package_id ??
@@ -209,7 +210,7 @@ function mapUserToClient(
     email: user.email ?? "No email",
     phone: getMetadataText(user.user_metadata, ["phone", "phone_number", "mobile"]) || "Not provided",
     avatar: getClientAvatar(user),
-    status: user.confirmed_at ? "active" : "inactive",
+    status: !hasVerifiedPayment ? "pending" : user.confirmed_at ? "active" : "inactive",
     packageId,
     packageName: packageSelection?.package_title || getMetadataText(user.user_metadata, ["package_title", "packageName"]),
     daysLeft: getDaysLeft(packageSelection),
@@ -294,8 +295,31 @@ export async function GET() {
   const latestMeasurementByUserId = new Map<string, ClientMeasurementRecord>();
   const onboardingByUserId = new Map<string, OnboardingSubmissionRecord>();
   const photosByUserId = new Map<string, string[]>();
+  const verifiedUserIds = new Set<string>();
 
   if (userIds.length > 0) {
+    // Email confirmation and payment submission alone do not activate a client.
+    // Page through payments so the database row limit cannot hide verified clients.
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data: payments, error: paymentsError } = await supabase
+        .from("payments")
+        .select("id,user_id")
+        .in("user_id", userIds)
+        .eq("status", "verified")
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+
+      if (paymentsError) {
+        return Response.json({ message: "Unable to load client payment verification status." }, { status: 500 });
+      }
+
+      (payments ?? []).forEach((payment) => {
+        if (payment.user_id) verifiedUserIds.add(payment.user_id);
+      });
+      if (!payments || payments.length < pageSize) break;
+    }
+
     const { data: profiles } = await supabase.from("profiles").select("*").in("id", userIds);
 
     (profiles ?? []).forEach((profile) => {
@@ -414,6 +438,7 @@ export async function GET() {
         latestMeasurementByUserId.get(user.id),
         onboardingByUserId.get(user.id),
         photosByUserId.get(user.id) ?? [],
+        verifiedUserIds.has(user.id),
       ),
     ),
   );

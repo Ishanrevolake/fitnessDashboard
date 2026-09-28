@@ -113,7 +113,7 @@ export function createClient(input: NewClientInput): FitnessClient {
     email: input.email.trim(),
     phone: input.phone.trim(),
     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E63946&color=fff`,
-    status: "active",
+    status: "pending",
     packageId: (packageOption?.id ?? "rookie") as PackageId,
     daysLeft: packageOption?.durationDays ?? 30,
     goal: "New client goal pending.",

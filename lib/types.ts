@@ -1,4 +1,4 @@
-export type ClientStatus = "active" | "inactive";
+export type ClientStatus = "active" | "inactive" | "pending";
 
 export type PackageId =
   | "rookie"

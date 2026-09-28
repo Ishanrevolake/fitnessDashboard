@@ -10,7 +10,7 @@ type ClientsRouteProps = {
 
 export default async function Page({ searchParams }: ClientsRouteProps) {
   const params = await searchParams;
-  const status = params.status === "active" || params.status === "inactive" ? params.status : "";
+  const status = params.status === "active" || params.status === "inactive" || params.status === "pending" ? params.status : "";
   const renewal = params.renewal === "ending-soon" ? params.renewal : "";
 
   return <ClientsPage initialStatus={status} initialRenewal={renewal} />;

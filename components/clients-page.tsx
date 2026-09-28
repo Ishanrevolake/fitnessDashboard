@@ -5,7 +5,6 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PageHeader } from "@/components/page-header";
-import { getStoredClients } from "@/lib/client-store";
 import { fetchClients } from "@/lib/api-client";
 import { getPackageLabel, packageOptions } from "@/lib/mock-data";
 import { getStoredPrograms } from "@/lib/program-store";
@@ -36,7 +35,7 @@ export function ClientsPage({ initialStatus = "", initialRenewal = "" }: Clients
     fetchClients()
       .then(setClients)
       .catch((error) => {
-        setClients(getStoredClients());
+        setClients([]);
         setLoadError(error instanceof Error ? error.message : "Unable to load clients from Supabase.");
       })
       .finally(() => setLoading(false));
@@ -110,6 +109,7 @@ export function ClientsPage({ initialStatus = "", initialRenewal = "" }: Clients
             >
               <option value="">All Status</option>
               <option value="active">Active</option>
+              <option value="pending">Pending</option>
               <option value="inactive">Inactive</option>
             </select>
             <select
@@ -206,8 +206,9 @@ function ClientTable({ clients, programs, loading }: { clients: FitnessClient[];
 
         {clients.map((client) => {
           const inactive = client.status === "inactive";
+          const pending = client.status === "pending";
           const progress = getClientProgress(client);
-          const statusLabel = inactive ? "Inactive" : client.daysLeft <= 7 ? "Ending Soon" : "Active";
+          const statusLabel = pending ? "Pending" : inactive ? "Inactive" : client.daysLeft <= 7 ? "Ending Soon" : "Active";
           const packageLabel = client.packageName ?? getPackageLabel(client.packageId);
 
           return (
@@ -221,7 +222,9 @@ function ClientTable({ clients, programs, loading }: { clients: FitnessClient[];
               </div>
               <strong>{packageLabel}</strong>
               <div className="client-progress-cell">
-                {inactive ? (
+                {pending ? (
+                  <span className="text-muted">Awaiting payment verification</span>
+                ) : inactive ? (
                   <span className="text-muted">Completed</span>
                 ) : (
                   <>
@@ -234,8 +237,8 @@ function ClientTable({ clients, programs, loading }: { clients: FitnessClient[];
                   </>
                 )}
               </div>
-              <span>{inactive ? "14 days ago" : client.daysLeft <= 7 ? "Yesterday" : "Today"}</span>
-              <span className={`client-status-chip ${inactive ? "inactive" : client.daysLeft <= 7 ? "ending" : "active"}`}>{statusLabel}</span>
+              <span>{pending ? "—" : inactive ? "14 days ago" : client.daysLeft <= 7 ? "Yesterday" : "Today"}</span>
+              <span className={`client-status-chip ${pending ? "ending" : inactive ? "inactive" : client.daysLeft <= 7 ? "ending" : "active"}`}>{statusLabel}</span>
               <Link className="client-table-action" href={`/client-profile?clientId=${client.id}`}>
                 View
               </Link>
@@ -249,6 +252,7 @@ function ClientTable({ clients, programs, loading }: { clients: FitnessClient[];
 
 function ClientCard({ client, programs }: { client: FitnessClient; programs: ProgramTemplate[] }) {
   const inactive = client.status === "inactive";
+  const pending = client.status === "pending";
   const assignedProgram = programs.find((program) => program.id === client.workoutPlan.assignedProgramId);
 
   return (
@@ -267,9 +271,9 @@ function ClientCard({ client, programs }: { client: FitnessClient; programs: Pro
       </div>
       <div className="client-card-meta">
         <div>
-          <div className="client-meta-label">Days Left</div>
+          <div className="client-meta-label">{pending ? "Status" : "Days Left"}</div>
           <div style={{ fontWeight: 700, color: inactive ? "var(--text-muted)" : "var(--accent-red)", marginTop: 4 }}>
-            {client.daysLeft} Days
+            {pending ? "Pending payment verification" : `${client.daysLeft} Days`}
           </div>
         </div>
         <div>
